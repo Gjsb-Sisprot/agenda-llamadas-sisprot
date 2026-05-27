@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Users, UserCheck, Percent, BarChart3, 
-  MapPin, RefreshCw, Layers, Pencil 
+  MapPin, RefreshCw, Layers, Pencil,
+  ChevronLeft, ChevronRight 
 } from 'lucide-react';
 
 interface Mesa {
@@ -71,6 +72,7 @@ export default function DashboardPage() {
    const [editingAsistente, setEditingAsistente] = useState<AsistenteConMesa | null>(null);
    const [editingMesaIds, setEditingMesaIds] = useState<string[]>([]);
    const [savingMesa, setSavingMesa] = useState(false);
+   const [detailPage, setDetailPage] = useState(1);
  
    const fetchData = async () => {
      try {
@@ -178,37 +180,41 @@ export default function DashboardPage() {
    };
  
    useEffect(() => {
-    fetchData();
-    
-    // Configurar canal de Supabase en tiempo real para asistentes
-    const channelAsistentes = supabase
-      .channel('asistentes-db-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'asistentes' },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
+     fetchData();
+     
+     // Configurar canal de Supabase en tiempo real para asistentes
+     const channelAsistentes = supabase
+       .channel('asistentes-db-changes')
+       .on(
+         'postgres_changes',
+         { event: '*', schema: 'public', table: 'asistentes' },
+         () => {
+           fetchData();
+         }
+       )
+       .subscribe();
 
-    // Configurar canal de Supabase en tiempo real para asistente_mesa
-    const channelAsistenteMesa = supabase
-      .channel('asistente-mesa-db-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'asistente_mesa' },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
+     // Configurar canal de Supabase en tiempo real para asistente_mesa
+     const channelAsistenteMesa = supabase
+       .channel('asistente-mesa-db-changes')
+       .on(
+         'postgres_changes',
+         { event: '*', schema: 'public', table: 'asistente_mesa' },
+         () => {
+           fetchData();
+         }
+       )
+       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channelAsistentes);
-      supabase.removeChannel(channelAsistenteMesa);
-    };
-  }, []);
+     return () => {
+       supabase.removeChannel(channelAsistentes);
+       supabase.removeChannel(channelAsistenteMesa);
+     };
+   }, []);
+
+   useEffect(() => {
+     setDetailPage(1);
+   }, [selectedMesaIdForDetail, filtro]);
  
    // Filter list based on selected category
    const asistentesFiltrados = asistentes.filter(a => {
@@ -604,6 +610,12 @@ export default function DashboardPage() {
             a => a.mesas_asignadas.some(m => m.id === selectedMesaIdForDetail)
           );
           
+          const itemsPerPage = 10;
+          const totalPages = Math.max(Math.ceil(detailList.length / itemsPerPage), 1);
+          const indexOfLastItem = detailPage * itemsPerPage;
+          const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+          const paginatedDetailList = detailList.slice(indexOfFirstItem, indexOfLastItem);
+          
           return selectedMesa ? (
             <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 space-y-4 animate-slide-up">
               <div className="flex justify-between items-center border-b border-[#1e2d4a] pb-3">
@@ -644,7 +656,7 @@ export default function DashboardPage() {
                         </td>
                       </tr>
                     ) : (
-                      detailList.map(a => (
+                      paginatedDetailList.map(a => (
                         <tr key={a.id} className="hover:bg-[#15223e] transition-colors">
                           <td className="py-3 px-2 font-medium text-white">{a.nombre}</td>
                           <td className="py-3 px-2">
@@ -692,6 +704,38 @@ export default function DashboardPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Controles de Paginación */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t border-[#1e2d4a] pt-4 text-xs">
+                  <span className="text-gray-400">
+                    Mostrando <span className="font-semibold text-white">{indexOfFirstItem + 1}</span> a{' '}
+                    <span className="font-semibold text-white">
+                      {Math.min(indexOfLastItem, detailList.length)}
+                    </span>{' '}
+                    de <span className="font-semibold text-white">{detailList.length}</span> asistentes
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setDetailPage(prev => Math.max(prev - 1, 1))}
+                      disabled={detailPage === 1}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1a2640] border border-[#1e2d4a] text-gray-300 hover:text-white transition-colors disabled:opacity-40 disabled:hover:text-gray-300"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Anterior
+                    </button>
+                    <div className="flex items-center gap-1.5 text-gray-400 px-2 font-medium">
+                      Página {detailPage} de {totalPages}
+                    </div>
+                    <button
+                      onClick={() => setDetailPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={detailPage === totalPages}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#1a2640] border border-[#1e2d4a] text-gray-300 hover:text-white transition-colors disabled:opacity-40 disabled:hover:text-gray-300"
+                    >
+                      Siguiente <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : null;
         })()
