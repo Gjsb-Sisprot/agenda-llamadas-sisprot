@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { evolutionService } from '@/lib/evolution-api';
+import { findAsistenteByCedula } from '@/lib/asistentes';
 import { cleanCedula, cleanTelefono } from '@/lib/utils';
 import { 
   Search, CheckCircle2, UserCheck, MessageSquare, 
@@ -191,6 +192,50 @@ export default function RegistroPage() {
     fetchMesas();
   }, []);
 
+  const REGISTRO_SELECT = `
+    id, nombre, cedula, telefono, condominio, municipio, parroquia, asistio,
+    es_acompanante, es_directivo, cargo_directivo,
+    asistente_mesa (
+      mesa_id,
+      mesas_trabajo (id, numero, nombre)
+    )
+  `;
+
+  const mapGuestFromDb = (rawGuest: DbSearchResponse): AsistenteInfo => ({
+    id: rawGuest.id,
+    nombre: rawGuest.nombre,
+    cedula: rawGuest.cedula,
+    telefono: rawGuest.telefono,
+    condominio: rawGuest.condominio,
+    municipio: rawGuest.municipio,
+    parroquia: rawGuest.parroquia,
+    asistio: rawGuest.asistio,
+    es_acompanante: rawGuest.es_acompanante || false,
+    es_directivo: rawGuest.es_directivo || false,
+    cargo_directivo: rawGuest.cargo_directivo,
+    mesas_preasignadas: (rawGuest.asistente_mesa || [])
+      .map(am => am.mesas_trabajo)
+      .filter((m): m is MesaInfo => m !== null),
+  });
+
+  const loadGuestForRegistration = (guest: AsistenteInfo) => {
+    setFoundGuest(guest);
+    setEditingGuestData({
+      nombre: guest.nombre,
+      telefono: guest.telefono || '',
+      condominio: guest.condominio,
+      municipio: guest.municipio,
+      parroquia: guest.parroquia || 'José Casanova Godoy',
+      es_acompanante: guest.es_acompanante || false,
+      es_directivo: guest.es_directivo || false,
+      cargo_directivo: guest.cargo_directivo || '',
+    });
+    setSelectedMesaIds(guest.mesas_preasignadas.map(m => m.id));
+    setShowMesaSelection(true);
+    setIsRegisteringNewGuest(false);
+    setErrorMsg('');
+  };
+
   // Search by Cédula
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,60 +250,41 @@ export default function RegistroPage() {
     setWaStatus(null);
     setHasCompanions(false);
     setCompanions([]);
+    setIsRegisteringNewGuest(false);
 
     try {
-      const { data: guests, error: searchError } = await supabase
-        .from('asistentes')
-        .select(`
-          id, nombre, cedula, telefono, condominio, municipio, parroquia, asistio,
-          es_acompanante, es_directivo, cargo_directivo,
-          asistente_mesa (
-            mesa_id,
-            mesas_trabajo (id, numero, nombre)
-          )
-        `)
-        .eq('cedula', cleaned);
+      const { data: matchedGuest, error: searchError } = await findAsistenteByCedula<DbSearchResponse>(
+        supabase,
+        cedula,
+        REGISTRO_SELECT
+      );
 
       if (searchError) throw searchError;
 
-      if (!guests || guests.length === 0) {
+      if (!matchedGuest) {
         setErrorMsg('Esta cédula no se encuentra registrada en la lista oficial de invitados. ¿Deseas registrarla ahora?');
         setLoading(false);
         return;
       }
 
-      const rawGuest = guests[0] as unknown as DbSearchResponse;
-      const guest: AsistenteInfo = {
-        id: rawGuest.id,
-        nombre: rawGuest.nombre,
-        cedula: rawGuest.cedula,
-        telefono: rawGuest.telefono,
-        condominio: rawGuest.condominio,
-        municipio: rawGuest.municipio,
-        parroquia: rawGuest.parroquia,
-        asistio: rawGuest.asistio,
-        es_acompanante: rawGuest.es_acompanante || false,
-        es_directivo: rawGuest.es_directivo || false,
-        cargo_directivo: rawGuest.cargo_directivo,
-        mesas_preasignadas: (rawGuest.asistente_mesa || [])
-          .map(am => am.mesas_trabajo)
-          .filter((m): m is MesaInfo => m !== null)
-      };
+      const guest = mapGuestFromDb(matchedGuest);
 
-      setFoundGuest(guest);
-      setEditingGuestData({
-        nombre: guest.nombre,
-        telefono: guest.telefono || '',
-        condominio: guest.condominio,
-        municipio: guest.municipio,
-        parroquia: guest.parroquia || 'José Casanova Godoy',
-        es_acompanante: guest.es_acompanante || false,
-        es_directivo: guest.es_directivo || false,
-        cargo_directivo: guest.cargo_directivo || '',
+      if (!guest.asistio) {
+        const { error: attendanceError } = await supabase
+          .from('asistentes')
+          .update({
+            asistio: true,
+            fecha_registro: new Date().toISOString(),
+          })
+          .eq('id', guest.id);
+
+        if (attendanceError) throw attendanceError;
+      }
+
+      loadGuestForRegistration({
+        ...guest,
+        asistio: true,
       });
-      // Pre-select all his preassigned mesas by default
-      setSelectedMesaIds(guest.mesas_preasignadas.map(m => m.id));
-      setShowMesaSelection(true);
     } catch (error) {
       console.error(error);
       setErrorMsg('Error al buscar el participante.');
