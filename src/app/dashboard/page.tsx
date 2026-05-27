@@ -60,80 +60,84 @@ interface MesaStats {
 }
 
 export default function DashboardPage() {
-  const [asistentes, setAsistentes] = useState<AsistenteConMesa[]>([]);
-  const [mesas, setMesas] = useState<Mesa[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedMesaIdForDetail, setSelectedMesaIdForDetail] = useState<string | null>(null);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch all mesas
-      const { data: dbMesas } = await supabase
-        .from('mesas_trabajo')
-        .select('*')
-        .order('numero', { ascending: true });
-      setMesas((dbMesas || []) as Mesa[]);
-
-      // Fetch all assistants with check-in status, contact info, and their assigned tables through asistente_mesa
-      const { data: dbAsistentes } = await supabase
-        .from('asistentes')
-        .select(`
-          id, nombre, municipio, asistio, es_acompanante, condominio, telefono, es_directivo, cargo_directivo,
-          asistente_mesa (
-            mesas_trabajo (id, numero, nombre)
-          )
-        `);
-      
-      const rawList = (dbAsistentes || []) as unknown as DbAsistenteJoin[];
-      const formatted: AsistenteConMesa[] = rawList.map((item) => ({
-        id: item.id,
-        nombre: item.nombre,
-        municipio: item.municipio,
-        asistio: item.asistio,
-        es_acompanante: item.es_acompanante || false,
-        condominio: item.condominio,
-        telefono: item.telefono,
-        es_directivo: item.es_directivo || false,
-        cargo_directivo: item.cargo_directivo,
-        mesas_asignadas: (item.asistente_mesa || [])
-          .map(am => am.mesas_trabajo)
-          .filter((m): m is { id: string; numero: number; nombre: string } => m !== null)
-      }));
-
-      setAsistentes(formatted);
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    
-    // Configurar canal de Supabase en tiempo real para actualizaciones inmediatas
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'asistentes' },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  // Total people who checked-in
-  const totalAsistieron = asistentes.filter(a => a.asistio).length;
-
-
+   const [asistentes, setAsistentes] = useState<AsistenteConMesa[]>([]);
+   const [mesas, setMesas] = useState<Mesa[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [selectedMesaIdForDetail, setSelectedMesaIdForDetail] = useState<string | null>(null);
+   const [filtro, setFiltro] = useState<'todos' | 'presidentes' | 'invitados'>('todos');
+ 
+   const fetchData = async () => {
+     try {
+       setLoading(true);
+       
+       // Fetch all mesas
+       const { data: dbMesas } = await supabase
+         .from('mesas_trabajo')
+         .select('*')
+         .order('numero', { ascending: true });
+       setMesas((dbMesas || []) as Mesa[]);
+ 
+       // Fetch all assistants with check-in status, contact info, and their assigned tables through asistente_mesa
+       const { data: dbAsistentes } = await supabase
+         .from('asistentes')
+         .select(`
+           id, nombre, municipio, asistio, es_acompanante, condominio, telefono, es_directivo, cargo_directivo,
+           asistente_mesa (
+             mesas_trabajo (id, numero, nombre)
+           )
+         `);
+       
+       const rawList = (dbAsistentes || []) as unknown as DbAsistenteJoin[];
+       const formatted: AsistenteConMesa[] = rawList.map((item) => ({
+         id: item.id,
+         nombre: item.nombre,
+         municipio: item.municipio,
+         asistio: item.asistio,
+         es_acompanante: item.es_acompanante || false,
+         condominio: item.condominio,
+         telefono: item.telefono,
+         es_directivo: item.es_directivo || false,
+         cargo_directivo: item.cargo_directivo,
+         mesas_asignadas: (item.asistente_mesa || [])
+           .map(am => am.mesas_trabajo)
+           .filter((m): m is { id: string; numero: number; nombre: string } => m !== null)
+       }));
+ 
+       setAsistentes(formatted);
+     } catch (error) {
+       console.error('Error fetching dashboard stats:', error);
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   useEffect(() => {
+     fetchData();
+     
+     // Configurar canal de Supabase en tiempo real para actualizaciones inmediatas
+     const channel = supabase
+       .channel('schema-db-changes')
+       .on(
+         'postgres_changes',
+         { event: '*', schema: 'public', table: 'asistentes' },
+         () => {
+           fetchData();
+         }
+       )
+       .subscribe();
+ 
+     return () => {
+       supabase.removeChannel(channel);
+     };
+   }, []);
+ 
+   // Filter list based on selected category
+   const asistentesFiltrados = asistentes.filter(a => {
+     if (filtro === 'presidentes') return !a.es_acompanante;
+     if (filtro === 'invitados') return a.es_acompanante;
+     return true;
+   });
+ 
   // Group stats by work table (mesa)
   const mesaStatsMap: { [mesaId: string]: MesaStats } = {};
   
@@ -151,7 +155,7 @@ export default function DashboardPage() {
   });
 
   // Aggregate attendee data
-  asistentes.forEach(a => {
+  asistentesFiltrados.forEach(a => {
     if (a.asistio) {
       a.mesas_asignadas.forEach(m => {
         if (mesaStatsMap[m.id]) {
@@ -172,17 +176,14 @@ export default function DashboardPage() {
 
   const mesaStatsList = Object.values(mesaStatsMap).sort((a, b) => a.numero - b.numero);
 
-  // Group global check-ins by municipality
+  // Group global check-ins by municipality based on filtered set
   const municipioStats: { [municipio: string]: { total: number; asistieron: number } } = {};
-  asistentes.forEach(a => {
-    // Only count registered presidents for municipal percentages or all? Let's count presidents as total base
+  asistentesFiltrados.forEach(a => {
     const mun = a.municipio || 'No especificado';
     if (!municipioStats[mun]) {
       municipioStats[mun] = { total: 0, asistieron: 0 };
     }
-    if (!a.es_acompanante) {
-      municipioStats[mun].total += 1;
-    }
+    municipioStats[mun].total += 1;
     if (a.asistio) {
       municipioStats[mun].asistieron += 1;
     }
@@ -210,7 +211,17 @@ export default function DashboardPage() {
 
       {/* Tarjetas de Indicadores */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 flex items-center justify-between">
+        <div 
+          onClick={() => {
+            setFiltro('presidentes');
+            setSelectedMesaIdForDetail(null);
+          }}
+          className={`bg-[#111a2e] border rounded-2xl p-6 flex items-center justify-between cursor-pointer transition-all hover:scale-[1.02] ${
+            filtro === 'presidentes' 
+              ? 'border-[#60c0ea] ring-1 ring-[#60c0ea] shadow-[0_0_15px_rgba(96,192,234,0.15)]' 
+              : 'border-[#1e2d4a] opacity-70 hover:opacity-100'
+          }`}
+        >
           <div className="space-y-1">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Presidentes</span>
             <div className="flex items-baseline gap-2">
@@ -223,12 +234,24 @@ export default function DashboardPage() {
             </div>
             <span className="text-xs text-gray-500 block">Presidentes que asistieron</span>
           </div>
-          <div className="h-12 w-12 rounded-xl bg-[#004e74]/20 text-[#60c0ea] flex items-center justify-center">
+          <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-colors ${
+            filtro === 'presidentes' ? 'bg-[#004e74] text-white' : 'bg-[#004e74]/20 text-[#60c0ea]'
+          }`}>
             <Users className="h-6 w-6" />
           </div>
         </div>
  
-        <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 flex items-center justify-between">
+        <div 
+          onClick={() => {
+            setFiltro('invitados');
+            setSelectedMesaIdForDetail(null);
+          }}
+          className={`bg-[#111a2e] border rounded-2xl p-6 flex items-center justify-between cursor-pointer transition-all hover:scale-[1.02] ${
+            filtro === 'invitados' 
+              ? 'border-emerald-500 ring-1 ring-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
+              : 'border-[#1e2d4a] opacity-70 hover:opacity-100'
+          }`}
+        >
           <div className="space-y-1">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Invitados</span>
             <span className="text-4xl font-extrabold text-emerald-400">
@@ -236,20 +259,34 @@ export default function DashboardPage() {
             </span>
             <span className="text-xs text-gray-500 block">Acompañantes registrados</span>
           </div>
-          <div className="h-12 w-12 rounded-xl bg-emerald-950/20 text-emerald-400 flex items-center justify-center">
+          <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-colors ${
+            filtro === 'invitados' ? 'bg-emerald-600 text-white' : 'bg-emerald-950/20 text-emerald-400'
+          }`}>
             <UserCheck className="h-6 w-6" />
           </div>
         </div>
  
-        <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 flex items-center justify-between">
+        <div 
+          onClick={() => {
+            setFiltro('todos');
+            setSelectedMesaIdForDetail(null);
+          }}
+          className={`bg-[#111a2e] border rounded-2xl p-6 flex items-center justify-between cursor-pointer transition-all hover:scale-[1.02] ${
+            filtro === 'todos' 
+              ? 'border-[#f3af30] ring-1 ring-[#f3af30] shadow-[0_0_15px_rgba(243,175,48,0.15)]' 
+              : 'border-[#1e2d4a] opacity-70 hover:opacity-100'
+          }`}
+        >
           <div className="space-y-1">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Totales por todo</span>
             <span className="text-4xl font-extrabold text-[#f3af30]">
-              {totalAsistieron}
+              {asistentes.filter(a => a.asistio).length}
             </span>
             <span className="text-xs text-gray-500 block">Total general en el encuentro</span>
           </div>
-          <div className="h-12 w-12 rounded-xl bg-amber-950/20 text-[#f3af30] flex items-center justify-center">
+          <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-colors ${
+            filtro === 'todos' ? 'bg-[#f3af30] text-black' : 'bg-amber-950/20 text-[#f3af30]'
+          }`}>
             <Percent className="h-6 w-6" />
           </div>
         </div>
@@ -383,7 +420,7 @@ export default function DashboardPage() {
       {selectedMesaIdForDetail && (
         (() => {
           const selectedMesa = mesas.find(m => m.id === selectedMesaIdForDetail);
-          const detailList = asistentes.filter(a => a.asistio && a.mesas_asignadas.some(m => m.id === selectedMesaIdForDetail));
+          const detailList = asistentesFiltrados.filter(a => a.asistio && a.mesas_asignadas.some(m => m.id === selectedMesaIdForDetail));
           
           return selectedMesa ? (
             <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 space-y-4 animate-slide-up">
