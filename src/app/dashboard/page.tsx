@@ -130,15 +130,9 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // Aggregations
-  // Let's define total official guests (presidents) pre-registered:
-  const totalInvitados = asistentes.filter(a => !a.es_acompanante).length;
   // Total people who checked-in
   const totalAsistieron = asistentes.filter(a => a.asistio).length;
-  // Percentage calculated against registered presidents
-  const porcentajeAsistencia = totalInvitados > 0 
-    ? Math.round((asistentes.filter(a => !a.es_acompanante && a.asistio).length / totalInvitados) * 100) 
-    : 0;
+
 
   // Group stats by work table (mesa)
   const mesaStatsMap: { [mesaId: string]: MesaStats } = {};
@@ -218,30 +212,44 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Total Invitados</span>
-            <span className="text-4xl font-extrabold text-white">{totalInvitados}</span>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Presidentes</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-extrabold text-white">
+                {asistentes.filter(a => !a.es_acompanante && a.asistio).length}
+              </span>
+              <span className="text-sm text-gray-400">
+                de {asistentes.filter(a => !a.es_acompanante).length}
+              </span>
+            </div>
+            <span className="text-xs text-gray-500 block">Presidentes que asistieron</span>
           </div>
-          <div className="h-12 w-12 rounded-xl bg-[#1a2640] text-gray-300 flex items-center justify-center">
+          <div className="h-12 w-12 rounded-xl bg-[#004e74]/20 text-[#60c0ea] flex items-center justify-center">
             <Users className="h-6 w-6" />
           </div>
         </div>
-
+ 
         <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Asistentes Registrados</span>
-            <span className="text-4xl font-extrabold text-emerald-400">{totalAsistieron}</span>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Invitados</span>
+            <span className="text-4xl font-extrabold text-emerald-400">
+              {asistentes.filter(a => a.es_acompanante && a.asistio).length}
+            </span>
+            <span className="text-xs text-gray-500 block">Acompañantes registrados</span>
           </div>
           <div className="h-12 w-12 rounded-xl bg-emerald-950/20 text-emerald-400 flex items-center justify-center">
             <UserCheck className="h-6 w-6" />
           </div>
         </div>
-
+ 
         <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Porcentaje Asistencia</span>
-            <span className="text-4xl font-extrabold text-[#60c0ea]">{porcentajeAsistencia}%</span>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Totales por todo</span>
+            <span className="text-4xl font-extrabold text-[#f3af30]">
+              {totalAsistieron}
+            </span>
+            <span className="text-xs text-gray-500 block">Total general en el encuentro</span>
           </div>
-          <div className="h-12 w-12 rounded-xl bg-[#004e74]/20 text-[#60c0ea] flex items-center justify-center">
+          <div className="h-12 w-12 rounded-xl bg-amber-950/20 text-[#f3af30] flex items-center justify-center">
             <Percent className="h-6 w-6" />
           </div>
         </div>
