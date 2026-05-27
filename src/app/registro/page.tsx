@@ -22,6 +22,7 @@ interface AsistenteInfo {
   telefono: string;
   condominio: string;
   municipio: string;
+  parroquia?: string | null;
   asistio: boolean;
   es_acompanante?: boolean;
   es_directivo?: boolean;
@@ -42,6 +43,7 @@ interface DbSearchResponse {
   telefono: string;
   condominio: string;
   municipio: string;
+  parroquia: string | null;
   asistio: boolean;
   es_acompanante: boolean | null;
   es_directivo: boolean | null;
@@ -127,7 +129,7 @@ export default function RegistroPage() {
       const { data: guests, error: searchError } = await supabase
         .from('asistentes')
         .select(`
-          id, nombre, cedula, telefono, condominio, municipio, asistio,
+          id, nombre, cedula, telefono, condominio, municipio, parroquia, asistio,
           es_acompanante, es_directivo, cargo_directivo,
           asistente_mesa (
             mesa_id,
@@ -152,6 +154,7 @@ export default function RegistroPage() {
         telefono: rawGuest.telefono,
         condominio: rawGuest.condominio,
         municipio: rawGuest.municipio,
+        parroquia: rawGuest.parroquia,
         asistio: rawGuest.asistio,
         es_acompanante: rawGuest.es_acompanante || false,
         es_directivo: rawGuest.es_directivo || false,
@@ -261,6 +264,7 @@ export default function RegistroPage() {
             telefono: comp.telefono,
             condominio: foundGuest.condominio,
             municipio: foundGuest.municipio,
+            parroquia: foundGuest.parroquia,
             asistio: true,
             es_acompanante: true,
             invitado_por_id: foundGuest.id,
@@ -301,7 +305,9 @@ En nombre de nuestra Gobernadora Joana Sánchez queremos darte la cordial bienve
 
 Tu participación como acompañante y representante de la comunidad *${foundGuest.condominio}* es sumamente valiosa para nosotros.
 
-Sin duda alguna, ¡Aragua nos une, y siempre nos vamos a encontrar! Eres Gente de Bien, HACIÉNDOLO BIEN! 🚀`;
+Sin duda alguna, ¡Aragua nos une, y siempre nos vamos a encontrar! Eres Gente de Bien, HACIÉNDOLO BIEN! 🚀
+
+_Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
 
           const waResultComp = await evolutionService.sendWhatsAppMessage(comp.telefono, companionMessage);
           if (waResultComp.success) {
@@ -339,7 +345,9 @@ ${mesasStringWA}
 
 Tu participación en representación de la comunidad *${updatedGuest.condominio}* es sumamente valiosa para nosotros.
 
-Sin duda alguna, ¡Aragua nos une, y siempre nos vamos a encontrar! Eres Gente de Bien, HACIÉNDOLO BIEN! 🚀`;
+Sin duda alguna, ¡Aragua nos une, y siempre nos vamos a encontrar! Eres Gente de Bien, HACIÉNDOLO BIEN! 🚀
+
+_Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
 
         setWaStatus({ success: false, msg: 'Enviando mensaje de confirmación al presidente...' });
         const waResult = await evolutionService.sendWhatsAppMessage(updatedGuest.telefono, customMessage);

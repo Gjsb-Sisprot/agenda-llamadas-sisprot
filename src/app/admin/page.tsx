@@ -7,6 +7,63 @@
    RefreshCw, ClipboardList, Pencil, X 
  } from 'lucide-react';
  
+ const PARROQUIAS_POR_MUNICIPIO: { [key: string]: string[] } = {
+   Girardot: [
+     'José Casanova Godoy',
+     'Las Delicias',
+     'Madre María de San José',
+     'Joaquín Crespo',
+     'Pedro José Ovalle',
+     'Andrés Eloy Blanco',
+     'Choroní',
+     'Florencio Jiménez'
+   ],
+   'Santiago Mariño': [
+     'Turmero',
+     'Samán de Güere',
+     'Alfredo Pacheco Miranda',
+     'Pedro Arévalo Aponte',
+     'Chuao'
+   ],
+   'Mario Briceño Iragorry': [
+     'El Limón',
+     'Caña de Azúcar'
+   ],
+   'José Félix Ribas': [
+     'Juan Vicente Bolívar y Ponte',
+     'Castor Nieves Ríos',
+     'Zuata',
+     'Pao de Zárate',
+     'Guacamaya'
+   ],
+   'Francisco Linares Alcántara': [
+     'Santa Rita',
+     'Francisco de Miranda',
+     'Monseñor Feliciano González'
+   ],
+   Sucre: [
+     'Cagua',
+     'Bella Vista'
+   ],
+   Libertador: [
+     'Palo Negro',
+     'San Martín de Porres'
+   ],
+   Lamas: [
+     'Santa Cruz'
+   ],
+   Zamora: [
+     'Villa de Cura',
+     'San Francisco de Asís',
+     'Magdalena',
+     'Tocorón',
+     'Augusto Mijares'
+   ],
+   Tovar: [
+     'Colonia Tovar'
+   ]
+ };
+ 
  interface Mesa {
    id: string;
    numero: number;
@@ -20,6 +77,7 @@
    telefono: string;
    condominio: string;
    municipio: string;
+   parroquia?: string | null;
    asistio: boolean;
    es_acompanante?: boolean;
    es_directivo?: boolean;
@@ -40,6 +98,7 @@
    telefono: string;
    condominio: string;
    municipio: string;
+   parroquia: string | null;
    asistio: boolean;
    es_acompanante: boolean | null;
    es_directivo: boolean | null;
@@ -71,6 +130,7 @@
      telefono: string;
      condominio: string;
      municipio: string;
+     parroquia: string;
      es_acompanante: boolean;
      es_directivo: boolean;
      cargo_directivo: string;
@@ -81,6 +141,7 @@
      telefono: '',
      condominio: '',
      municipio: 'Girardot',
+     parroquia: 'José Casanova Godoy',
      es_acompanante: false,
      es_directivo: false,
      cargo_directivo: '',
@@ -102,7 +163,7 @@
        const { data: dataAsistentes, error: errorAsistentes } = await supabase
          .from('asistentes')
          .select(`
-           id, nombre, cedula, telefono, condominio, municipio, asistio, 
+           id, nombre, cedula, telefono, condominio, municipio, parroquia, asistio, 
            es_acompanante, es_directivo, cargo_directivo,
            whatsapp_status, whatsapp_error,
            asistente_mesa (
@@ -122,6 +183,7 @@
          telefono: item.telefono,
          condominio: item.condominio,
          municipio: item.municipio,
+         parroquia: item.parroquia,
          asistio: item.asistio,
          es_acompanante: item.es_acompanante || false,
          es_directivo: item.es_directivo || false,
@@ -154,6 +216,7 @@
       telefono: a.telefono,
       condominio: a.condominio,
       municipio: a.municipio,
+      parroquia: a.parroquia || 'José Casanova Godoy',
       es_acompanante: a.es_acompanante || false,
       es_directivo: a.es_directivo || false,
       cargo_directivo: a.cargo_directivo || '',
@@ -169,6 +232,7 @@
       telefono: '',
       condominio: '',
       municipio: 'Girardot',
+      parroquia: 'José Casanova Godoy',
       es_acompanante: false,
       es_directivo: false,
       cargo_directivo: '',
@@ -194,6 +258,7 @@
           telefono: nuevoAsistente.telefono,
           condominio: nuevoAsistente.condominio,
           municipio: nuevoAsistente.municipio,
+          parroquia: nuevoAsistente.parroquia,
           es_acompanante: nuevoAsistente.es_acompanante,
           es_directivo: nuevoAsistente.es_acompanante ? nuevoAsistente.es_directivo : false,
           cargo_directivo: (nuevoAsistente.es_acompanante && nuevoAsistente.es_directivo) ? nuevoAsistente.cargo_directivo : null,
@@ -236,6 +301,7 @@
           telefono: nuevoAsistente.telefono,
           condominio: nuevoAsistente.condominio,
           municipio: nuevoAsistente.municipio,
+          parroquia: nuevoAsistente.parroquia,
           es_acompanante: nuevoAsistente.es_acompanante,
           es_directivo: nuevoAsistente.es_acompanante ? nuevoAsistente.es_directivo : false,
           cargo_directivo: (nuevoAsistente.es_acompanante && nuevoAsistente.es_directivo) ? nuevoAsistente.cargo_directivo : null,
@@ -272,6 +338,7 @@
         telefono: '',
         condominio: '',
         municipio: 'Girardot',
+        parroquia: 'José Casanova Godoy',
         es_acompanante: false,
         es_directivo: false,
         cargo_directivo: '',
@@ -423,26 +490,46 @@
                  placeholder="Ej. Condominio El Paraíso"
                />
              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Municipio *</label>
+                <select
+                  value={nuevoAsistente.municipio}
+                  onChange={e => {
+                    const newMuni = e.target.value;
+                    const defaultParroquia = PARROQUIAS_POR_MUNICIPIO[newMuni]?.[0] || '';
+                    setNuevoAsistente({ 
+                      ...nuevoAsistente, 
+                      municipio: newMuni,
+                      parroquia: defaultParroquia
+                    });
+                  }}
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                >
+                   <option value="Girardot">Girardot</option>
+                   <option value="Santiago Mariño">Santiago Mariño</option>
+                   <option value="Mario Briceño Iragorry">Mario Briceño Iragorry</option>
+                   <option value="José Félix Ribas">José Félix Ribas</option>
+                   <option value="Francisco Linares Alcántara">Francisco Linares Alcántara</option>
+                   <option value="Sucre">Sucre</option>
+                   <option value="Libertador">Libertador</option>
+                   <option value="Lamas">Lamas</option>
+                   <option value="Zamora">Zamora</option>
+                   <option value="Tovar">Tovar</option>
+                </select>
+              </div>
  
-             <div>
-               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Municipio *</label>
-               <select
-                 value={nuevoAsistente.municipio}
-                 onChange={e => setNuevoAsistente({ ...nuevoAsistente, municipio: e.target.value })}
-                 className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
-               >
-                  <option value="Girardot">Girardot</option>
-                  <option value="Santiago Mariño">Santiago Mariño</option>
-                  <option value="Mario Briceño Iragorry">Mario Briceño Iragorry</option>
-                  <option value="José Félix Ribas">José Félix Ribas</option>
-                  <option value="Francisco Linares Alcántara">Francisco Linares Alcántara</option>
-                  <option value="Sucre">Sucre</option>
-                  <option value="Libertador">Libertador</option>
-                  <option value="Lamas">Lamas</option>
-                  <option value="Zamora">Zamora</option>
-                  <option value="Tovar">Tovar</option>
-               </select>
-             </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Parroquia *</label>
+                <select
+                  value={nuevoAsistente.parroquia}
+                  onChange={e => setNuevoAsistente({ ...nuevoAsistente, parroquia: e.target.value })}
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                >
+                  {(PARROQUIAS_POR_MUNICIPIO[nuevoAsistente.municipio] || []).map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
  
              {/* Opción de Acompañante / Directivo */}
              <div className="space-y-3 pt-2 border-t border-[#1e2d4a]">
@@ -591,7 +678,7 @@
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-400">{a.municipio} | {a.telefono}</div>
+                        <div className="text-xs text-gray-400">{a.municipio} {a.parroquia && `(${a.parroquia})`} | {a.telefono}</div>
                       </td>
                       <td className="py-3 px-2 max-w-[150px] truncate">{a.condominio}</td>
                       <td className="py-3 px-2 text-xs">
