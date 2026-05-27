@@ -261,9 +261,10 @@ export default function DashboardPage() {
 
   const mesaStatsList = Object.values(mesaStatsMap).sort((a, b) => a.numero - b.numero);
 
-  // Group global check-ins by municipality based on filtered set
+  // Group global check-ins by municipality based on Presidents only
   const municipioStats: { [municipio: string]: { total: number; asistieron: number } } = {};
-  asistentesFiltrados.forEach(a => {
+  asistentes.forEach(a => {
+    if (a.es_acompanante) return; // Exclude companions
     const mun = a.municipio || 'No especificado';
     if (!municipioStats[mun]) {
       municipioStats[mun] = { total: 0, asistieron: 0 };
@@ -274,9 +275,10 @@ export default function DashboardPage() {
     }
   });
 
-  // Group global check-ins by parroquia based on filtered set
+  // Group global check-ins by parroquia based on Presidents only
   const parroquiaStats: { [parroquia: string]: { total: number; asistieron: number } } = {};
-  asistentesFiltrados.forEach(a => {
+  asistentes.forEach(a => {
+    if (a.es_acompanante) return; // Exclude companions
     const parr = a.parroquia || 'No especificada';
     if (!parroquiaStats[parr]) {
       parroquiaStats[parr] = { total: 0, asistieron: 0 };
