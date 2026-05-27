@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Users, UserCheck, Percent, BarChart3, 
-  MapPin, RefreshCw, Layers 
+  MapPin, RefreshCw, Layers, Pencil 
 } from 'lucide-react';
 
 interface Mesa {
@@ -68,6 +68,10 @@ export default function DashboardPage() {
    const [selectedMesaIdForDetail, setSelectedMesaIdForDetail] = useState<string | null>(null);
    const [filtro, setFiltro] = useState<'todos' | 'presidentes' | 'invitados'>('todos');
  
+   const [editingAsistente, setEditingAsistente] = useState<AsistenteConMesa | null>(null);
+   const [editingMesaIds, setEditingMesaIds] = useState<string[]>([]);
+   const [savingMesa, setSavingMesa] = useState(false);
+ 
    const fetchData = async () => {
      try {
        setLoading(true);
@@ -111,6 +115,38 @@ export default function DashboardPage() {
        console.error('Error fetching dashboard stats:', error);
      } finally {
        setLoading(false);
+     }
+   };
+
+   const handleSaveMesas = async () => {
+     if (!editingAsistente) return;
+     setSavingMesa(true);
+     try {
+       // Delete existing relations
+       const { error: deleteError } = await supabase
+         .from('asistente_mesa')
+         .delete()
+         .eq('asistente_id', editingAsistente.id);
+       if (deleteError) throw deleteError;
+
+       // Insert new relations
+       if (editingMesaIds.length > 0) {
+         const relations = editingMesaIds.map(mesaId => ({
+           asistente_id: editingAsistente.id,
+           mesa_id: mesaId
+         }));
+         const { error: insertError } = await supabase
+           .from('asistente_mesa')
+           .insert(relations);
+         if (insertError) throw insertError;
+       }
+
+       await fetchData();
+       setEditingAsistente(null);
+     } catch (err) {
+       console.error('Error saving updated mesas:', err);
+     } finally {
+       setSavingMesa(false);
      }
    };
  
@@ -568,6 +604,7 @@ export default function DashboardPage() {
                       <th className="py-2.5 px-2">Condominio</th>
                       <th className="py-2.5 px-2">Municipio</th>
                       <th className="py-2.5 px-2">Teléfono</th>
+                      <th className="py-2.5 px-2 text-right">Acción</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e2d4a]">
@@ -595,6 +632,18 @@ export default function DashboardPage() {
                           <td className="py-3 px-2 text-gray-300 max-w-[200px] truncate">{a.condominio}</td>
                           <td className="py-3 px-2 text-gray-300">{a.municipio}</td>
                           <td className="py-3 px-2 font-mono text-gray-300">{a.telefono}</td>
+                          <td className="py-3 px-2 text-right">
+                            <button
+                              onClick={() => {
+                                setEditingAsistente(a);
+                                setEditingMesaIds(a.mesas_asignadas.map(m => m.id));
+                              }}
+                              className="p-1.5 rounded bg-[#1a2640] border border-[#1e2d4a] text-gray-300 hover:text-white hover:bg-[#1e2d4a] transition-all"
+                              title="Editar mesas asignadas"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -604,6 +653,62 @@ export default function DashboardPage() {
             </div>
           ) : null;
         })()
+      )}
+
+      {/* Modal para editar mesas de un asistente */}
+      {editingAsistente && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-scale-up">
+            <div>
+              <h3 className="text-lg font-bold text-white">Editar Mesas Asignadas</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Modifica las mesas de trabajo para <strong>{editingAsistente.nombre}</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-2 bg-[#1a2640] p-4 rounded-xl border border-[#1e2d4a] max-h-60 overflow-y-auto">
+              {mesas.map(m => {
+                const isChecked = editingMesaIds.includes(m.id);
+                return (
+                  <label key={m.id} className="flex items-center gap-3 text-sm text-gray-300 hover:text-white cursor-pointer py-1.5 px-2 rounded hover:bg-[#111a2e] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        if (isChecked) {
+                          setEditingMesaIds(editingMesaIds.filter(id => id !== m.id));
+                        } else {
+                          setEditingMesaIds([...editingMesaIds, m.id]);
+                        }
+                      }}
+                      className="rounded border-[#1e2d4a] bg-[#111a2e] text-[#60c0ea] focus:ring-0 focus:ring-offset-0"
+                    />
+                    <span>{m.nombre}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                disabled={savingMesa}
+                onClick={() => setEditingAsistente(null)}
+                className="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold rounded-xl transition-all text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={savingMesa}
+                onClick={handleSaveMesas}
+                className="flex-1 py-2 bg-[#004e74] hover:bg-[#004e74]/80 text-white font-bold rounded-xl transition-all disabled:opacity-50 text-xs flex items-center justify-center gap-1.5"
+              >
+                {savingMesa ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
