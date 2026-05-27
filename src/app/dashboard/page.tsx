@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  Users, UserCheck, Percent, BarChart3, 
+  Users, UserCheck, BarChart3, 
   MapPin, RefreshCw, Layers, Pencil,
-  ChevronLeft, ChevronRight 
+  ChevronLeft, ChevronRight, User 
 } from 'lucide-react';
 
 interface Mesa {
@@ -431,7 +431,7 @@ export default function DashboardPage() {
           <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-colors ${
             filtro === 'todos' ? 'bg-[#f3af30] text-black' : 'bg-amber-950/20 text-[#f3af30]'
           }`}>
-            <Percent className="h-6 w-6" />
+            <User className="h-6 w-6" />
           </div>
         </div>
       </div>
