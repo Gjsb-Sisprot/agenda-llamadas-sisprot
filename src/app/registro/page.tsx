@@ -785,30 +785,6 @@ _Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Teléfono (WhatsApp) *</label>
-              <input
-                type="text"
-                required
-                value={nuevoGuest.telefono}
-                onChange={e => setNuevoGuest({ ...nuevoGuest, telefono: e.target.value })}
-                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
-                placeholder="Ej. 04141234567"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Nombre del Condominio *</label>
-              <input
-                type="text"
-                required
-                value={nuevoGuest.condominio}
-                onChange={e => setNuevoGuest({ ...nuevoGuest, condominio: e.target.value })}
-                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
-                placeholder="Ej. Condominio El Paraíso"
-              />
-            </div>
-
-            <div>
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Municipio *</label>
               <select
                 value={nuevoGuest.municipio}
@@ -840,6 +816,30 @@ _Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
                   <option key={p} value={p}>{p}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Nombre del Condominio *</label>
+              <input
+                type="text"
+                required
+                value={nuevoGuest.condominio}
+                onChange={e => setNuevoGuest({ ...nuevoGuest, condominio: e.target.value })}
+                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                placeholder="Ej. Condominio El Paraíso"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Teléfono (WhatsApp) *</label>
+              <input
+                type="text"
+                required
+                value={nuevoGuest.telefono}
+                onChange={e => setNuevoGuest({ ...nuevoGuest, telefono: e.target.value })}
+                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                placeholder="Ej. 04141234567"
+              />
             </div>
           </div>
 
@@ -985,28 +985,6 @@ _Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Teléfono *</label>
-                <input
-                  type="text"
-                  required
-                  value={editingGuestData.telefono}
-                  onChange={e => setEditingGuestData({ ...editingGuestData, telefono: e.target.value })}
-                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Condominio *</label>
-                <input
-                  type="text"
-                  required
-                  value={editingGuestData.condominio}
-                  onChange={e => setEditingGuestData({ ...editingGuestData, condominio: e.target.value })}
-                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
-                />
-              </div>
-
-              <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Municipio *</label>
                 <select
                   value={editingGuestData.municipio}
@@ -1038,6 +1016,28 @@ _Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
                     <option key={p} value={p}>{p}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Condominio *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingGuestData.condominio}
+                  onChange={e => setEditingGuestData({ ...editingGuestData, condominio: e.target.value })}
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Teléfono *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingGuestData.telefono}
+                  onChange={e => setEditingGuestData({ ...editingGuestData, telefono: e.target.value })}
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                />
               </div>
             </div>
 
