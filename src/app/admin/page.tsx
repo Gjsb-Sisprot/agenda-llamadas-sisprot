@@ -80,7 +80,7 @@
      cedula: '',
      telefono: '',
      condominio: '',
-     municipio: 'Mariño',
+     municipio: 'Girardot',
      es_acompanante: false,
      es_directivo: false,
      cargo_directivo: '',
@@ -168,7 +168,7 @@
       cedula: '',
       telefono: '',
       condominio: '',
-      municipio: 'Mariño',
+      municipio: 'Girardot',
       es_acompanante: false,
       es_directivo: false,
       cargo_directivo: '',
@@ -271,7 +271,7 @@
         cedula: '',
         telefono: '',
         condominio: '',
-        municipio: 'Mariño',
+        municipio: 'Girardot',
         es_acompanante: false,
         es_directivo: false,
         cargo_directivo: '',
@@ -431,13 +431,16 @@
                  onChange={e => setNuevoAsistente({ ...nuevoAsistente, municipio: e.target.value })}
                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
                >
-                 <option value="Mariño">Mariño</option>
-                 <option value="Maneiro">Maneiro</option>
-                 <option value="García">García</option>
-                 <option value="Arismendi">Arismendi</option>
-                 <option value="Díaz">Díaz</option>
-                 <option value="Tubores">Tubores</option>
-                 <option value="Península de Macanao">Península de Macanao</option>
+                  <option value="Girardot">Girardot</option>
+                  <option value="Santiago Mariño">Santiago Mariño</option>
+                  <option value="Mario Briceño Iragorry">Mario Briceño Iragorry</option>
+                  <option value="José Félix Ribas">José Félix Ribas</option>
+                  <option value="Francisco Linares Alcántara">Francisco Linares Alcántara</option>
+                  <option value="Sucre">Sucre</option>
+                  <option value="Libertador">Libertador</option>
+                  <option value="Lamas">Lamas</option>
+                  <option value="Zamora">Zamora</option>
+                  <option value="Tovar">Tovar</option>
                </select>
              </div>
  
