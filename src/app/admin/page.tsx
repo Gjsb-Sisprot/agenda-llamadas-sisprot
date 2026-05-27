@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
-  Database, Plus, Trash2, CheckCircle2, AlertTriangle, 
+  Plus, Trash2, CheckCircle2, AlertTriangle, 
   RefreshCw, ClipboardList 
 } from 'lucide-react';
 
@@ -135,175 +135,6 @@ export default function AdminPage() {
     fetchData();
   }, []);
 
-  const handleSeedDatabase = async () => {
-    setLoading(true);
-    setErrorMsg('');
-    setSuccessMsg('');
-    try {
-      // 1. Insert services
-      const sampleServices = [
-        { nombre: 'manto', descripcion: 'Mantenimiento preventivo e impermeabilización' },
-        { nombre: 'ascensores', descripcion: 'Mantenimiento y reparación de ascensores' },
-        { nombre: 'agua y plomería', descripcion: 'Sistemas de bombas, tuberías y distribución hídrica' },
-        { nombre: 'asfalto', descripcion: 'Bacheo y vialidad interna' },
-        { nombre: 'poda', descripcion: 'Control de áreas verdes y poda de árboles' },
-        { nombre: 'iluminación', descripcion: 'Instalación y mantenimiento de luminarias' },
-      ];
-      const { error: errServ } = await supabase.from('servicios').upsert(sampleServices, { onConflict: 'nombre' });
-      if (errServ) throw errServ;
-
-      // 2. Insert mesas
-      const sampleMesas = [
-        { numero: 1, nombre: 'Mesa 1: Impermeabilización' },
-        { numero: 2, nombre: 'Mesa 2: Ascensores' },
-        { numero: 3, nombre: 'Mesa 3: Hídrica' },
-        { numero: 4, nombre: 'Mesa 4: Asfalto' },
-        { numero: 5, nombre: 'Mesa 5: Poda y tala' },
-        { numero: 6, nombre: 'Mesa 6: Luminarias' },
-      ];
-      const { error: errMesas } = await supabase.from('mesas_trabajo').upsert(sampleMesas, { onConflict: 'numero' });
-      if (errMesas) throw errMesas;
-
-      // 3. Fetch newly inserted mesas and services to relate them
-      const { data: dbMesas } = await supabase.from('mesas_trabajo').select('*');
-      const { data: dbServ } = await supabase.from('servicios').select('*');
-
-      if (dbMesas && dbServ) {
-        const relations = [];
-        // Relacionar cada mesa con su servicio principal de forma predeterminada
-        const m1 = dbMesas.find(m => m.numero === 1);
-        const m2 = dbMesas.find(m => m.numero === 2);
-        const m3 = dbMesas.find(m => m.numero === 3);
-        const m4 = dbMesas.find(m => m.numero === 4);
-        const m5 = dbMesas.find(m => m.numero === 5);
-        const m6 = dbMesas.find(m => m.numero === 6);
-
-        const sManto = dbServ.find(s => s.nombre === 'manto');
-        const sAsc = dbServ.find(s => s.nombre === 'ascensores');
-        const sAgua = dbServ.find(s => s.nombre === 'agua y plomería');
-        const sAsfalto = dbServ.find(s => s.nombre === 'asfalto');
-        const sPoda = dbServ.find(s => s.nombre === 'poda');
-        const sLuz = dbServ.find(s => s.nombre === 'iluminación');
-
-        if (m1 && sManto) relations.push({ mesa_id: m1.id, servicio_id: sManto.id });
-        if (m2 && sAsc) relations.push({ mesa_id: m2.id, servicio_id: sAsc.id });
-        if (m3 && sAgua) relations.push({ mesa_id: m3.id, servicio_id: sAgua.id });
-        if (m4 && sAsfalto) relations.push({ mesa_id: m4.id, servicio_id: sAsfalto.id });
-        if (m5 && sPoda) relations.push({ mesa_id: m5.id, servicio_id: sPoda.id });
-        if (m6 && sLuz) relations.push({ mesa_id: m6.id, servicio_id: sLuz.id });
-
-        if (relations.length > 0) {
-          await supabase.from('mesa_servicio').upsert(relations);
-        }
-      }
-
-      // 4. Create sample attendees with real data from spreadsheet
-      if (dbMesas && dbMesas.length > 0) {
-        const m1 = dbMesas.find(m => m.numero === 1)?.id;
-        const m2 = dbMesas.find(m => m.numero === 2)?.id;
-        const m3 = dbMesas.find(m => m.numero === 3)?.id;
-        const m4 = dbMesas.find(m => m.numero === 4)?.id;
-        const m5 = dbMesas.find(m => m.numero === 5)?.id;
-        const m6 = dbMesas.find(m => m.numero === 6)?.id;
-        const allMesas = [m1, m2, m3, m4, m5, m6].filter((id): id is string => !!id);
-
-        const sampleAsistentes = [
-          { id: 'a2d9bb1a-081f-4197-ab50-93428c463532', nombre: 'Johanna Orlin Quintero López', cedula: '15532130', telefono: '0412-1482113', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 3D', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: 'bfe08d82-91ea-4ab0-b694-4715db387398', nombre: 'Iris ledezma', cedula: '6960825', telefono: '0414-3821741', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 9C', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '09aaa2d5-d963-4e25-971a-228a2a9ff2bf', nombre: 'Francisca Mora', cedula: '5344377', telefono: '0414-4628509', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 3C', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: 'c604e1a0-d8f7-4855-9289-5d93add67c6a', nombre: 'Alfonso Gabriel Duno Castrillo', cedula: '7004345', telefono: '0414-4164644', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 5D', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          
-          { id: 'ba9902a4-e54e-47b5-9c49-fa0c91a12b6b', nombre: 'Rosa Linda Velásquez González', cedula: 'V-5.279.743', telefono: '0424-3288729', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 2B', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '7c25dc96-0f54-438b-8795-9f161ccbe323', nombre: 'Beccy Partida', cedula: 'V8744079', telefono: '0412-1482298', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II TORRE 2D', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: 'b4c2d98d-08c1-4b60-9534-0d7bafab55a5', nombre: 'MARIA GIL', cedula: 'V-7249693', telefono: '0424-3658402', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 1D', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '617257c0-5ecd-47ca-8c35-11137eb36f70', nombre: 'Reina roa', cedula: 'V10897383', telefono: '0424-3298133', condominio: 'Conjunto residencial el lago II Edificio 6B', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          
-          { id: '3b3ec3c5-1d1d-4417-acc9-f186e336a200', nombre: 'José Luis Tovar', cedula: 'V-3.398.281', telefono: '0424-3447615', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II Edificio 2A', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '8a029496-c600-4602-b2af-2a1f0d4df63f', nombre: 'Stivaly Fattore', cedula: 'V20451000', telefono: '0424-3119473', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 8C', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '9ea8829b-de97-4a66-8496-2d386a9858b9', nombre: 'Mercedes Elena Rodrigu', cedula: '8740037', telefono: '0412-4307380', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 3F', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: 'e5f69a69-4225-4895-b897-d80c3a643794', nombre: 'Magalis Garcia', cedula: '4555713', telefono: '0412-3554165', condominio: 'Conjunto Residencial El Lago II Edificio 4F', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          
-          { id: '223b4628-62d4-4c14-8e7f-ab0f5ccfff05', nombre: 'Luis Arenas', cedula: 'V9621890', telefono: '0426-5145220', condominio: 'Conjunto Residencial El Lago II Edificio 4B', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: 'e2d5feb1-d635-4b7b-824f-8a02689b1fad', nombre: 'Nacari Torres', cedula: '12140240', telefono: '0412-4569851', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 1F', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: 'cf82625b-27dc-41d2-bdc3-19f08b4450bf', nombre: 'Susana Pérez', cedula: 'V-19277791', telefono: '0412-5334747', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 2E', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '1dff0fa3-f41d-40d7-8823-34dac0dc0fe6', nombre: 'María Ramos', cedula: '10694505', telefono: '0414-3532884', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 9E', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          
-          { id: '209c7ab9-0984-4c1a-9ed6-6a95b822b1a7', nombre: 'Vivian yuraima claro nuñez', cedula: '13701272', telefono: '0424-3097701', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 7E', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '4b654f87-3b60-4917-aa89-028bf3c3a7da', nombre: 'Gladys Hernandez', cedula: 'V6935752', telefono: '0414-4900676', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 1-E', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: 'b68d0777-e47c-460e-81cc-ec2e7dfead88', nombre: 'Damarys González', cedula: '15266066', telefono: '0412-8920536', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 6D', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '7e88a3e7-9590-4c28-84d8-917942a0c71a', nombre: 'Ana arana', cedula: 'V-4856018', telefono: '0424-2332653', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 9D', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '8c8a2f7b-7872-489f-bc69-5a61e9054ce2', nombre: 'Roxana Gómez', cedula: 'V14354296', telefono: '0412-4871616', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 5E', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false },
-          { id: '61245f11-feb6-4b2e-8e5e-fa112cdadce4', nombre: 'WENDY RANGEL', cedula: 'V11982144', telefono: '0416-5437641', condominio: 'CONJUNTO RESIDENCIAL EL LAGO II EDIFICIO 7-D', municipio: 'Girardot', estado: 'Aragua', parroquia: 'José Casanova Godoy', asistio: false }
-        ];
-
-        // Upsert attendees
-        const { error: errAsis } = await supabase.from('asistentes').upsert(sampleAsistentes, { onConflict: 'cedula' });
-        if (errAsis) throw errAsis;
-
-        // Clear old pre-assignments
-        const ids = sampleAsistentes.map(a => a.id);
-        await supabase.from('asistente_mesa').delete().in('asistente_id', ids);
-
-        // Map preassigned tables based on spreadsheet rules
-        const assistantMesasMap: { [cedula: string]: string[] } = {
-          '15532130': [m4, m6].filter((id): id is string => !!id),
-          '6960825': [m4, m6].filter((id): id is string => !!id),
-          '5344377': [m4, m6].filter((id): id is string => !!id),
-          '7004345': [m4, m6].filter((id): id is string => !!id),
-          
-          'V-5.279.743': allMesas,
-          'V8744079': allMesas,
-          'V-7249693': allMesas,
-          'V10897383': allMesas,
-          
-          'V-3.398.281': allMesas,
-          'V20451000': allMesas,
-          '8740037': allMesas,
-          '4555713': allMesas,
-          
-          'V9621890': allMesas,
-          '12140240': allMesas,
-          'V-19277791': allMesas,
-          '10694505': allMesas,
-          
-          '13701272': [m4].filter((id): id is string => !!id),
-          'V6935752': [m4, m6].filter((id): id is string => !!id),
-          '15266066': [],
-          'V-4856018': [m5, m6].filter((id): id is string => !!id),
-          'V14354296': [],
-          'V11982144': [m4].filter((id): id is string => !!id)
-        };
-
-        const relationsPayload: { asistente_id: string; mesa_id: string }[] = [];
-        sampleAsistentes.forEach(asis => {
-          const mesaIds = assistantMesasMap[asis.cedula];
-          if (mesaIds && mesaIds.length > 0) {
-            mesaIds.forEach(mId => {
-              relationsPayload.push({
-                asistente_id: asis.id,
-                mesa_id: mId
-              });
-            });
-          }
-        });
-
-        if (relationsPayload.length > 0) {
-          const { error: relError } = await supabase.from('asistente_mesa').insert(relationsPayload);
-          if (relError) throw relError;
-        }
-      }
-
-      setSuccessMsg('Base de datos inicializada con éxito con las 6 mesas oficiales y presidentes de prueba.');
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      const errorObj = err as Error;
-      setErrorMsg(errorObj.message || 'Error al sembrar la base de datos.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCrearAsistente = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -434,29 +265,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Caja de herramientas de configuración rápida */}
-      {mesas.length === 0 && (
-        <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex gap-4">
-            <div className="h-12 w-12 rounded-xl bg-[#004e74]/20 flex items-center justify-center text-[#60c0ea] shrink-0">
-              <Database className="h-6 w-6" />
-            </div>
-            <div>
-              <h3 className="font-bold text-white text-lg">La base de datos está vacía</h3>
-              <p className="text-gray-400 text-sm mt-1 max-w-xl">
-                Inicializa la base de datos con los servicios iniciales, las 4 mesas de trabajo temáticas y una lista semilla de presidentes de condominio de prueba para comenzar a probar el flujo de asistencia.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleSeedDatabase}
-            disabled={loading}
-            className="w-full md:w-auto px-6 py-3 font-semibold text-sm rounded-xl bg-[#004e74] text-white hover:bg-[#004e74]/80 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-          >
-            <Database className="h-4 w-4" /> Inicializar Datos Prueba
-          </button>
-        </div>
-      )}
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Formulario para agregar asistente manualmente */}
