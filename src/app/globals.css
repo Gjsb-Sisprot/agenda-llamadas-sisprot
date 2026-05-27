@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+:root {
+  --radius: 0.75rem;
+
+  /* Paleta corporativa SGF (Sisprot Global Fiber) */
+  --sgf-fiber-blue: #004e74;
+  --sgf-nav-blue: #002851;
+  --sgf-link-cyan: #60c0ea;
+  --sgf-ethernet-yellow: #f3af30;
+  --sgf-spark-yellow: #ffd880;
+  --sgf-latency-orange: #db8a2a;
+  --sgf-cloud-white: #e4eaf0;
+  --sgf-pure-white: #f4f4f4;
+  --sgf-silicon-black: #161616;
+  --sgf-gallium-gray: #b6bfc6;
+  --sgf-lead-gray: #32383f;
+  --sgf-beryllium-gray: #5e6770;
+
+  /* Mapeo de tokens a modo oscuro por defecto (Premium Dark Theme) */
+  --background: #0b111e;
+  --foreground: #f4f4f4;
+  --card: #111a2e;
+  --card-foreground: #f4f4f4;
+  --popover: #111a2e;
+  --popover-foreground: #f4f4f4;
+  --primary: #004e74;
+  --primary-foreground: #ffffff;
+  --secondary: #1a2640;
+  --secondary-foreground: #e4eaf0;
+  --muted: #1e2d4a;
+  --muted-foreground: #b6bfc6;
+  --accent: #60c0ea;
+  --accent-foreground: #002851;
+  --destructive: #db8a2a;
+  --destructive-foreground: #ffffff;
+  --border: #1e2d4a;
+  --input: #1a2640;
+  --ring: #60c0ea;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Colores de marca */
+  --color-sgf-fiber: var(--sgf-fiber-blue);
+  --color-sgf-nav: var(--sgf-nav-blue);
+  --color-sgf-link: var(--sgf-link-cyan);
+  --color-sgf-ethernet: var(--sgf-ethernet-yellow);
+  --color-sgf-spark: var(--sgf-spark-yellow);
+  --color-sgf-latency: var(--sgf-latency-orange);
+  --color-sgf-cloud: var(--sgf-cloud-white);
+  --color-sgf-pure: var(--sgf-pure-white);
+  --color-sgf-silicon: var(--sgf-silicon-black);
+  --color-sgf-gallium: var(--sgf-gallium-gray);
+  --color-sgf-lead: var(--sgf-lead-gray);
+  --color-sgf-beryllium: var(--sgf-beryllium-gray);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Animaciones personalizadas */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(0.98); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
