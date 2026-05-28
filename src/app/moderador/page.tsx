@@ -255,9 +255,10 @@ export default function ModeradorPage() {
       setModTelefono('');
       setModCedula('');
       await fetchData();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setErrorMsg(err.message || 'Error al registrar el moderador externo.');
+      const errMsg = err instanceof Error ? err.message : 'Error al registrar el moderador externo.';
+      setErrorMsg(errMsg);
     } finally {
       setActionLoading(false);
     }
