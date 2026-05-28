@@ -172,6 +172,10 @@ export default function RegistroPage() {
   const [hasCompanions, setHasCompanions] = useState(false);
   const [companions, setCompanions] = useState<CompanionInput[]>([]);
   
+  // Dropdown search states
+  const [showNuevoCondoDropdown, setShowNuevoCondoDropdown] = useState(false);
+  const [showEditCondoDropdown, setShowEditCondoDropdown] = useState(false);
+  
   // Registration result states
   const [registrado, setRegistrado] = useState(false);
   const [asistenteInfo, setAsistenteInfo] = useState<AsistenteInfo | null>(null);
@@ -836,10 +840,10 @@ _Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
                     condominio: ''
                   });
                 }}
-                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea] uppercase"
               >
                 {Object.keys(PARROQUIAS_POR_MUNICIPIO).map(muni => (
-                  <option key={muni} value={muni}>{muni}</option>
+                  <option key={muni} value={muni}>{muni.toUpperCase()}</option>
                 ))}
               </select>
             </div>
@@ -849,33 +853,59 @@ _Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
               <select
                 value={nuevoGuest.parroquia}
                 onChange={e => setNuevoGuest({ ...nuevoGuest, parroquia: e.target.value, condominio: '' })}
-                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea] uppercase"
               >
                 {(PARROQUIAS_POR_MUNICIPIO[nuevoGuest.municipio] || []).map(p => (
-                  <option key={p} value={p}>{p}</option>
+                  <option key={p} value={p}>{p.toUpperCase()}</option>
                 ))}
               </select>
             </div>
 
-            <div>
+            <div className="relative">
               <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Nombre del Condominio *</label>
-              <select
+              <input
+                type="text"
                 required
-                value={nuevoGuest.condominio}
+                value={nuevoGuest.condominio.toUpperCase()}
+                onFocus={() => setShowNuevoCondoDropdown(true)}
+                onBlur={() => setTimeout(() => setShowNuevoCondoDropdown(false), 250)}
                 onChange={e => setNuevoGuest({ ...nuevoGuest, condominio: e.target.value })}
-                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
-              >
-                <option value="">Selecciona un condominio...</option>
-                {registeredCondominios
-                  .filter(c => 
+                placeholder="ESCRIBE PARA BUSCAR CONDOMINIO..."
+                className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea] placeholder-gray-500 uppercase"
+              />
+              {showNuevoCondoDropdown && (
+                <div className="absolute z-50 w-full mt-1 max-h-60 overflow-y-auto bg-[#162035] border border-[#1e2d4a] rounded-lg shadow-xl">
+                  {registeredCondominios
+                    .filter(c => 
+                      c.municipio.toLowerCase() === (nuevoGuest.municipio || '').toLowerCase() &&
+                      (c.parroquia || '').toLowerCase() === (nuevoGuest.parroquia || '').toLowerCase() &&
+                      c.condominio.toLowerCase().includes((nuevoGuest.condominio || '').toLowerCase())
+                    )
+                    .map(c => (
+                      <button
+                        key={c.condominio}
+                        type="button"
+                        onClick={() => {
+                          setNuevoGuest({ ...nuevoGuest, condominio: c.condominio });
+                          setShowNuevoCondoDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#60c0ea] hover:text-[#111a2e] border-b border-[#1e2d4a]/50 last:border-b-0 uppercase transition-all"
+                      >
+                        {c.condominio.toUpperCase()}
+                      </button>
+                    ))
+                  }
+                  {registeredCondominios.filter(c => 
                     c.municipio.toLowerCase() === (nuevoGuest.municipio || '').toLowerCase() &&
-                    (c.parroquia || '').toLowerCase() === (nuevoGuest.parroquia || '').toLowerCase()
-                  )
-                  .map(c => (
-                    <option key={c.condominio} value={c.condominio}>{c.condominio}</option>
-                  ))
-                }
-              </select>
+                    (c.parroquia || '').toLowerCase() === (nuevoGuest.parroquia || '').toLowerCase() &&
+                    c.condominio.toLowerCase().includes((nuevoGuest.condominio || '').toLowerCase())
+                  ).length === 0 && (
+                    <div className="px-4 py-2.5 text-xs text-gray-400">
+                      NO SE ENCONTRARON CONDOMINIOS REGISTRADOS EN ESTA PARROQUIA
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -1046,10 +1076,10 @@ _Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
                       condominio: ''
                     });
                   }}
-                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea] uppercase"
                 >
                   {Object.keys(PARROQUIAS_POR_MUNICIPIO).map(muni => (
-                    <option key={muni} value={muni}>{muni}</option>
+                    <option key={muni} value={muni}>{muni.toUpperCase()}</option>
                   ))}
                 </select>
               </div>
@@ -1059,33 +1089,59 @@ _Nota: Número para solo envío de mensajería masiva - No recibe respuestas_`;
                 <select
                   value={editingGuestData.parroquia}
                   onChange={e => setEditingGuestData({ ...editingGuestData, parroquia: e.target.value, condominio: '' })}
-                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea] uppercase"
                 >
                   {(PARROQUIAS_POR_MUNICIPIO[editingGuestData.municipio] || []).map(p => (
-                    <option key={p} value={p}>{p}</option>
+                    <option key={p} value={p}>{p.toUpperCase()}</option>
                   ))}
                 </select>
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Condominio *</label>
-                <select
+                <input
+                  type="text"
                   required
-                  value={editingGuestData.condominio}
+                  value={editingGuestData.condominio.toUpperCase()}
+                  onFocus={() => setShowEditCondoDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowEditCondoDropdown(false), 250)}
                   onChange={e => setEditingGuestData({ ...editingGuestData, condominio: e.target.value })}
-                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea]"
-                >
-                  <option value="">Selecciona un condominio...</option>
-                  {registeredCondominios
-                    .filter(c => 
+                  placeholder="ESCRIBE PARA BUSCAR CONDOMINIO..."
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#60c0ea] placeholder-gray-500 uppercase"
+                />
+                {showEditCondoDropdown && (
+                  <div className="absolute z-50 w-full mt-1 max-h-60 overflow-y-auto bg-[#162035] border border-[#1e2d4a] rounded-lg shadow-xl">
+                    {registeredCondominios
+                      .filter(c => 
+                        c.municipio.toLowerCase() === (editingGuestData.municipio || '').toLowerCase() &&
+                        (c.parroquia || '').toLowerCase() === (editingGuestData.parroquia || '').toLowerCase() &&
+                        c.condominio.toLowerCase().includes((editingGuestData.condominio || '').toLowerCase())
+                      )
+                      .map(c => (
+                        <button
+                          key={c.condominio}
+                          type="button"
+                          onClick={() => {
+                            setEditingGuestData({ ...editingGuestData, condominio: c.condominio });
+                            setShowEditCondoDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#60c0ea] hover:text-[#111a2e] border-b border-[#1e2d4a]/50 last:border-b-0 uppercase transition-all"
+                        >
+                          {c.condominio.toUpperCase()}
+                        </button>
+                      ))
+                    }
+                    {registeredCondominios.filter(c => 
                       c.municipio.toLowerCase() === (editingGuestData.municipio || '').toLowerCase() &&
-                      (c.parroquia || '').toLowerCase() === (editingGuestData.parroquia || '').toLowerCase()
-                    )
-                    .map(c => (
-                      <option key={c.condominio} value={c.condominio}>{c.condominio}</option>
-                    ))
-                  }
-                </select>
+                      (c.parroquia || '').toLowerCase() === (editingGuestData.parroquia || '').toLowerCase() &&
+                      c.condominio.toLowerCase().includes((editingGuestData.condominio || '').toLowerCase())
+                    ).length === 0 && (
+                      <div className="px-4 py-2.5 text-xs text-gray-400">
+                        NO SE ENCONTRARON CONDOMINIOS REGISTRADOS EN ESTA PARROQUIA
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
