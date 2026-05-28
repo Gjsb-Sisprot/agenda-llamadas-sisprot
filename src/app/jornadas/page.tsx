@@ -7,7 +7,6 @@ import {
   Calendar, Play, Users, CheckCircle, 
   AlertCircle, Trash2, ArrowRight, FileSpreadsheet, Loader2 
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import { cleanCedula, cleanTelefono } from '@/lib/utils';
 
 interface JornadaStat {
@@ -144,6 +143,7 @@ export default function JornadasPage() {
 
     try {
       // 1. Read file
+      const XLSX = await import('xlsx');
       const reader = new FileReader();
       
       const fileData = await new Promise<ExcelRow[]>((resolve, reject) => {
