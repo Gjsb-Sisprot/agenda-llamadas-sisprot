@@ -320,9 +320,9 @@ export default function ModeradorPage() {
     ? asistentes.filter(a => a.mesas_asignadas.includes(selectedMesaId))
     : [];
 
-  const uniqueMunicipios = Array.from(new Set(assistantsInSelectedMesa.map(a => a.municipio).filter(Boolean))).sort();
-  const uniqueParroquias = Array.from(new Set(assistantsInSelectedMesa.map(a => a.parroquia).filter(Boolean))).sort();
-  const uniqueCondominios = Array.from(new Set(assistantsInSelectedMesa.map(a => a.condominio).filter(Boolean))).sort();
+  const uniqueMunicipios = Array.from(new Set(assistantsInSelectedMesa.map(a => a.municipio).filter((m): m is string => !!m))).sort();
+  const uniqueParroquias = Array.from(new Set(assistantsInSelectedMesa.map(a => a.parroquia).filter((p): p is string => !!p))).sort();
+  const uniqueCondominios = Array.from(new Set(assistantsInSelectedMesa.map(a => a.condominio).filter((c): c is string => !!c))).sort();
 
   const filteredAssistants = assistantsInSelectedMesa.filter(a => {
     if (filterMunicipio && a.municipio !== filterMunicipio) return false;
