@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { cleanCedula, cleanTelefono } from '@/lib/utils';
 import { 
   Users, Award, Star, Search, Check, 
   X, Loader2, ArrowRight, CheckCircle2, XCircle 
@@ -40,6 +41,15 @@ export default function ModeradorPage() {
   // Search state for moderator selection
   const [modSearchQuery, setModSearchQuery] = useState('');
   const [showModDropdown, setShowModDropdown] = useState(false);
+
+  // Form/Modal states for creating external moderator
+  const [showCreateModModal, setShowCreateModModal] = useState(false);
+  const [modNombre, setModNombre] = useState('');
+  const [modEnte, setModEnte] = useState('');
+  const [modCorreo, setModCorreo] = useState('');
+  const [modTelefono, setModTelefono] = useState('');
+  const [modCedula, setModCedula] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -193,6 +203,61 @@ export default function ModeradorPage() {
       await fetchData();
     } catch (err) {
       console.error('Error assigning moderator:', err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Create and assign external moderator
+  const handleCreateExternalModerator = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedMesaId) return;
+    setActionLoading(true);
+    setErrorMsg('');
+    try {
+      const cleanCed = modCedula.trim() ? cleanCedula(modCedula) : `MOD-${selectedMesaId}-${Date.now().toString().slice(-6)}`;
+      
+      // Check if moderator with this cedula already exists (only if they input a real one)
+      if (modCedula.trim()) {
+        const { data: existing } = await supabase
+          .from('asistentes')
+          .select('id')
+          .eq('cedula', cleanCed)
+          .maybeSingle();
+        if (existing) {
+          throw new Error('Ya existe una persona registrada con esta cédula.');
+        }
+      }
+
+      // Insert new moderator as asistente in DB
+      const { error: insertErr } = await supabase
+        .from('asistentes')
+        .insert({
+          nombre: modNombre.trim().toUpperCase(),
+          cedula: cleanCed,
+          telefono: cleanTelefono(modTelefono),
+          condominio: modEnte.trim().toUpperCase(), // Store Ente in condominio column
+          cargo_directivo: modCorreo.trim(), // Store Correo in cargo_directivo
+          estado: `MODERADOR_MESA_${selectedMesaId}|${activeJornada}`,
+          asistio: true, // Moderators are present by default
+          es_acompanante: false,
+          es_directivo: true,
+          municipio: 'GIRARDOT'
+        });
+
+      if (insertErr) throw insertErr;
+
+      // Close modal and reset fields
+      setShowCreateModModal(false);
+      setModNombre('');
+      setModEnte('');
+      setModCorreo('');
+      setModTelefono('');
+      setModCedula('');
+      await fetchData();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg(err.message || 'Error al registrar el moderador externo.');
     } finally {
       setActionLoading(false);
     }
@@ -378,22 +443,32 @@ export default function ModeradorPage() {
                       {/* Moderator control */}
                       <div className="flex items-center gap-3">
                         {getModeratorForMesa(selectedMesa.id) ? (
-                          <div className="bg-[#18233c] border border-amber-500/20 px-3.5 py-2 rounded-xl flex items-center gap-3 shadow-lg">
-                            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                          <div className="bg-[#18233c] border border-amber-500/20 px-3.5 py-2 rounded-xl flex items-center gap-3 shadow-lg max-w-sm">
+                            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                               <Star className="h-4.5 w-4.5 text-amber-400 fill-amber-400" />
                             </div>
-                            <div className="text-left">
-                              <span className="text-[9px] font-semibold text-amber-400 uppercase tracking-wider block">
-                                MODERADOR
+                            <div className="text-left min-w-0">
+                              <span className="text-[9px] font-semibold text-amber-400 uppercase tracking-wider block truncate">
+                                MODERADOR {getModeratorForMesa(selectedMesa.id)?.condominio ? `(${getModeratorForMesa(selectedMesa.id)?.condominio})` : ''}
                               </span>
-                              <span className="text-xs font-bold text-white block uppercase">
+                              <span className="text-xs font-bold text-white block uppercase truncate">
                                 {getModeratorForMesa(selectedMesa.id)?.nombre}
                               </span>
+                              {getModeratorForMesa(selectedMesa.id)?.cargo_directivo && (
+                                <span className="text-[9px] text-gray-400 block truncate normal-case">
+                                  {getModeratorForMesa(selectedMesa.id)?.cargo_directivo}
+                                </span>
+                              )}
+                              {getModeratorForMesa(selectedMesa.id)?.telefono && (
+                                <span className="text-[9px] text-gray-400 block truncate">
+                                  Tlf: {getModeratorForMesa(selectedMesa.id)?.telefono}
+                                </span>
+                              )}
                             </div>
                             <button
                               disabled={actionLoading}
                               onClick={() => handleRemoveModerator(getModeratorForMesa(selectedMesa.id)!.id)}
-                              className="text-gray-400 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10 transition-all ml-1"
+                              className="text-gray-400 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10 transition-all ml-1 shrink-0"
                               title="Quitar moderador"
                             >
                               <X className="h-4 w-4" />
@@ -401,42 +476,51 @@ export default function ModeradorPage() {
                           </div>
                         ) : (
                           // Selector Input dropdown for prospective moderator
-                          <div className="relative w-64">
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={modSearchQuery}
-                                onFocus={() => setShowModDropdown(true)}
-                                onBlur={() => setTimeout(() => setShowModDropdown(false), 250)}
-                                onChange={e => setModSearchQuery(e.target.value)}
-                                placeholder="ASIGNAR MODERADOR..."
-                                className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-[#60c0ea] placeholder-gray-500 uppercase font-semibold"
-                              />
-                              <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-gray-400" />
-                            </div>
-                            
-                            {showModDropdown && modSearchQuery.trim() !== '' && (
-                              <div className="absolute z-50 right-0 w-72 mt-1 max-h-60 overflow-y-auto bg-[#162035] border border-[#1e2d4a] rounded-xl shadow-2xl">
-                                {prospectiveModerators.map(a => (
-                                  <button
-                                    key={a.id}
-                                    type="button"
-                                    onClick={() => handleAssignModerator(a.id)}
-                                    className="w-full text-left px-4 py-2.5 text-xs text-gray-200 hover:bg-[#60c0ea] hover:text-[#111a2e] border-b border-[#1e2d4a]/50 last:border-b-0 uppercase transition-all flex flex-col gap-0.5"
-                                  >
-                                    <span className="font-bold">{a.nombre.toUpperCase()}</span>
-                                    <span className="text-[10px] text-gray-400 group-hover:text-inherit">
-                                      C.I. {a.cedula} | {a.condominio.toUpperCase()}
-                                    </span>
-                                  </button>
-                                ))}
-                                {prospectiveModerators.length === 0 && (
-                                  <div className="px-4 py-3 text-xs text-gray-400 italic">
-                                    No se encontraron asistentes disponibles
-                                  </div>
-                                )}
+                          <div className="flex items-center gap-2">
+                            <div className="relative w-64">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={modSearchQuery}
+                                  onFocus={() => setShowModDropdown(true)}
+                                  onBlur={() => setTimeout(() => setShowModDropdown(false), 250)}
+                                  onChange={e => setModSearchQuery(e.target.value)}
+                                  placeholder="BUSCAR DE LA LISTA..."
+                                  className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-[#60c0ea] placeholder-gray-500 uppercase font-semibold"
+                                />
+                                <Search className="absolute left-3 top-3 h-3.5 w-3.5 text-gray-400" />
                               </div>
-                            )}
+                              
+                              {showModDropdown && modSearchQuery.trim() !== '' && (
+                                <div className="absolute z-50 right-0 w-72 mt-1 max-h-60 overflow-y-auto bg-[#162035] border border-[#1e2d4a] rounded-xl shadow-2xl">
+                                  {prospectiveModerators.map(a => (
+                                    <button
+                                      key={a.id}
+                                      type="button"
+                                      onClick={() => handleAssignModerator(a.id)}
+                                      className="w-full text-left px-4 py-2.5 text-xs text-gray-200 hover:bg-[#60c0ea] hover:text-[#111a2e] border-b border-[#1e2d4a]/50 last:border-b-0 uppercase transition-all flex flex-col gap-0.5"
+                                    >
+                                      <span className="font-bold">{a.nombre.toUpperCase()}</span>
+                                      <span className="text-[10px] text-gray-400 group-hover:text-inherit">
+                                        C.I. {a.cedula} | {a.condominio.toUpperCase()}
+                                      </span>
+                                    </button>
+                                  ))}
+                                  {prospectiveModerators.length === 0 && (
+                                    <div className="px-4 py-3 text-xs text-gray-400 italic">
+                                      No se encontraron asistentes disponibles
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowCreateModModal(true)}
+                              className="bg-amber-600 hover:bg-amber-50 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all uppercase whitespace-nowrap"
+                            >
+                              Registrar Externo
+                            </button>
                           </div>
                         )}
                       </div>
@@ -602,6 +686,130 @@ export default function ModeradorPage() {
         )}
 
       </div>
+
+      {/* Modal para Registrar Moderador Externo (Gobernación) */}
+      {showCreateModModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="bg-[#16223f] px-6 py-4 flex items-center justify-between border-b border-[#1e2d4a]">
+              <h3 className="font-bold text-white text-sm uppercase flex items-center gap-2">
+                <Star className="h-4 w-4 text-amber-400 fill-amber-400" /> Registrar Moderador Externo
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowCreateModModal(false)}
+                className="text-gray-400 hover:text-white transition-all"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Form */}
+            <form onSubmit={handleCreateExternalModerator} className="p-6 space-y-4 text-left">
+              {errorMsg && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 font-medium">
+                  {errorMsg}
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                  Nombre Completo
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={modNombre}
+                  onChange={e => setModNombre(e.target.value)}
+                  placeholder="EJ. ELISAUL REYES"
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                  Ente / Institución
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={modEnte}
+                  onChange={e => setModEnte(e.target.value)}
+                  placeholder="EJ. GOBERNACIÓN DE ARAGUA"
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Cédula (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={modCedula}
+                    onChange={e => setModCedula(e.target.value)}
+                    placeholder="EJ. V-12345678"
+                    className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Teléfono
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={modTelefono}
+                    onChange={e => setModTelefono(e.target.value)}
+                    placeholder="EJ. 04121234567"
+                    className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                  Correo Electrónico
+                </label>
+                <input
+                  required
+                  type="email"
+                  value={modCorreo}
+                  onChange={e => setModCorreo(e.target.value)}
+                  placeholder="EJ. ELISAUL.REYES@GOBERNACION.GOB.VE"
+                  className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#60c0ea] font-semibold"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3 font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-400 hover:text-white uppercase transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all uppercase flex items-center gap-2"
+                >
+                  {actionLoading ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" /> Guardando...
+                    </>
+                  ) : (
+                    'Guardar y Asignar'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
