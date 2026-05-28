@@ -224,34 +224,45 @@ export default function JornadasContent() {
       setProgressMsg(`Preparando importación de ${fileData.length} registros...`);
       setProgressPercent(50);
 
+      const mappedPayloads = fileData.map((row: ExcelRow) => {
+        const rawCedula = row['Cédula Presidente'] || row['Cedula Presidente'] || row['Cedula'] || '';
+        const rawTelefono = row['Teléfono Presidente'] || row['Telefono Presidente'] || row['Telefono'] || '';
+        
+        return {
+          nombre: String(row['Presidente Condominio'] || row['Nombre'] || 'Invitado').toUpperCase(),
+          cedula: cleanCedula(String(rawCedula)),
+          telefono: cleanTelefono(String(rawTelefono)),
+          condominio: String(row['Nombre del Urbanismo'] || row['Condominio'] || 'N/D').toUpperCase(),
+          municipio: String(row['Municipio'] || 'Girardot'),
+          parroquia: String(row['Parroquia'] || ''),
+          estado: `|${nuevaJornadaName}`,
+          asistio: false,
+          es_acompanante: false,
+          es_directivo: false,
+          _rawRow: row
+        };
+      }).filter(item => item.cedula && item.nombre);
+
+      const uniquePayloadsMap = new Map<string, typeof mappedPayloads[0]>();
+      mappedPayloads.forEach(item => {
+        if (!uniquePayloadsMap.has(item.cedula)) {
+          uniquePayloadsMap.set(item.cedula, item);
+        }
+      });
+      const uniquePayloads = Array.from(uniquePayloadsMap.values());
+
       const batchSize = 30;
-      const totalBatches = Math.ceil(fileData.length / batchSize);
+      const totalBatches = Math.ceil(uniquePayloads.length / batchSize);
 
       for (let i = 0; i < totalBatches; i++) {
         const start = i * batchSize;
-        const end = Math.min(start + batchSize, fileData.length);
-        const batchRows = fileData.slice(start, end);
+        const end = Math.min(start + batchSize, uniquePayloads.length);
+        const batchRows = uniquePayloads.slice(start, end);
 
         setProgressMsg(`Importando lote ${i + 1} de ${totalBatches}...`);
         setProgressPercent(50 + Math.round((i / totalBatches) * 45));
 
-        const insertPayload = batchRows.map((row: ExcelRow) => {
-          const rawCedula = row['Cédula Presidente'] || row['Cedula Presidente'] || row['Cedula'] || '';
-          const rawTelefono = row['Teléfono Presidente'] || row['Telefono Presidente'] || row['Telefono'] || '';
-          
-          return {
-            nombre: String(row['Presidente Condominio'] || row['Nombre'] || 'Invitado').toUpperCase(),
-            cedula: cleanCedula(String(rawCedula)),
-            telefono: cleanTelefono(String(rawTelefono)),
-            condominio: String(row['Nombre del Urbanismo'] || row['Condominio'] || 'N/D').toUpperCase(),
-            municipio: String(row['Municipio'] || 'Girardot'),
-            parroquia: String(row['Parroquia'] || ''),
-            estado: `|${nuevaJornadaName}`,
-            asistio: false,
-            es_acompanante: false,
-            es_directivo: false
-          };
-        }).filter(item => item.cedula && item.nombre);
+        const insertPayload = batchRows.map(({ _rawRow, ...rest }) => rest);
 
         if (insertPayload.length > 0) {
           const { data: insertedList, error: insertErr } = await supabase
@@ -265,16 +276,15 @@ export default function JornadasContent() {
           if (insertedList && insertedList.length > 0) {
             const relationsPayload: { asistente_id: string; mesa_id: string }[] = [];
             
-            batchRows.forEach((row: ExcelRow) => {
-              const rawCedula = row['Cédula Presidente'] || row['Cedula Presidente'] || row['Cedula'] || '';
-              const cleaned = cleanCedula(String(rawCedula));
-              const insertedUser = insertedList.find(u => u.cedula === cleaned);
+            batchRows.forEach((item) => {
+              const rawRow = item._rawRow;
+              const insertedUser = insertedList.find(u => u.cedula === item.cedula);
               
-              if (insertedUser) {
+              if (insertedUser && rawRow) {
                 // Collect preassigned tables columns
-                const serviceColumns = Object.keys(row).filter(k => k.startsWith('MESA DE LOS SERVICIOS'));
+                const serviceColumns = Object.keys(rawRow).filter(k => k.startsWith('MESA DE LOS SERVICIOS'));
                 serviceColumns.forEach(col => {
-                  const mId = findMesaId(row[col] as string);
+                  const mId = findMesaId(rawRow[col] as string);
                   if (mId) {
                     relationsPayload.push({
                       asistente_id: insertedUser.id,
