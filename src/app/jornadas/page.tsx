@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { supabase } from '@/lib/supabase';
 import Navigation from '@/components/Navigation';
 import { 
@@ -32,7 +33,7 @@ interface ExcelRow {
   [key: string]: unknown;
 }
 
-export default function JornadasPage() {
+function JornadasPageContent() {
   const [jornadas, setJornadas] = useState<JornadaStat[]>([]);
   const [activeJornada, setActiveJornada] = useState<string>('Jornada General');
   const [nuevaJornadaName, setNuevaJornadaName] = useState('');
@@ -569,3 +570,9 @@ export default function JornadasPage() {
     </div>
   );
 }
+
+const JornadasPage = dynamic(() => Promise.resolve(JornadasPageContent), {
+  ssr: false,
+});
+
+export default JornadasPage;
