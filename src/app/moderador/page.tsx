@@ -42,6 +42,11 @@ export default function ModeradorPage() {
   const [modSearchQuery, setModSearchQuery] = useState('');
   const [showModDropdown, setShowModDropdown] = useState(false);
 
+  // Filters for assistants in selected mesa
+  const [filterMunicipio, setFilterMunicipio] = useState('');
+  const [filterParroquia, setFilterParroquia] = useState('');
+  const [filterCondominio, setFilterCondominio] = useState('');
+
   // Form/Modal states for creating external moderator
   const [showCreateModModal, setShowCreateModModal] = useState(false);
   const [modNombre, setModNombre] = useState('');
@@ -170,8 +175,13 @@ export default function ModeradorPage() {
       supabase.removeChannel(channelAsistentes);
       supabase.removeChannel(channelAsistenteMesa);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeJornada]);
+
+  useEffect(() => {
+    setFilterMunicipio('');
+    setFilterParroquia('');
+    setFilterCondominio('');
+  }, [selectedMesaId]);
 
   // Find moderator for a given mesa ID
   const getModeratorForMesa = (mesaId: string): AsistenteInfo | undefined => {
@@ -309,6 +319,17 @@ export default function ModeradorPage() {
   const assistantsInSelectedMesa = selectedMesaId 
     ? asistentes.filter(a => a.mesas_asignadas.includes(selectedMesaId))
     : [];
+
+  const uniqueMunicipios = Array.from(new Set(assistantsInSelectedMesa.map(a => a.municipio).filter(Boolean))).sort();
+  const uniqueParroquias = Array.from(new Set(assistantsInSelectedMesa.map(a => a.parroquia).filter(Boolean))).sort();
+  const uniqueCondominios = Array.from(new Set(assistantsInSelectedMesa.map(a => a.condominio).filter(Boolean))).sort();
+
+  const filteredAssistants = assistantsInSelectedMesa.filter(a => {
+    if (filterMunicipio && a.municipio !== filterMunicipio) return false;
+    if (filterParroquia && a.parroquia !== filterParroquia) return false;
+    if (filterCondominio && a.condominio !== filterCondominio) return false;
+    return true;
+  });
 
   // Metrics for selected mesa
   // Assumed arrived if asistio is true
@@ -562,10 +583,67 @@ export default function ModeradorPage() {
                       <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                         Participantes Asignados
                       </h3>
+
+                      {assistantsInSelectedMesa.length > 0 && (
+                        /* Filtros por Municipio, Parroquia y Condominio */
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-[#0e1726]/40 p-4 rounded-xl border border-[#1e2d4a]/60">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                              Comunidad / Municipio
+                            </label>
+                            <select
+                              value={filterMunicipio}
+                              onChange={e => setFilterMunicipio(e.target.value)}
+                              className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                            >
+                              <option value="">TODAS LAS COMUNIDADES</option>
+                              {uniqueMunicipios.map(m => (
+                                <option key={m} value={m}>{m.toUpperCase()}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                              Parroquia
+                            </label>
+                            <select
+                              value={filterParroquia}
+                              onChange={e => setFilterParroquia(e.target.value)}
+                              className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                            >
+                              <option value="">TODAS LAS PARROQUIAS</option>
+                              {uniqueParroquias.map(p => (
+                                <option key={p} value={p}>{p.toUpperCase()}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                              Condominio / Urbanismo
+                            </label>
+                            <select
+                              value={filterCondominio}
+                              onChange={e => setFilterCondominio(e.target.value)}
+                              className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                            >
+                              <option value="">TODOS LOS CONDOMINIOS</option>
+                              {uniqueCondominios.map(c => (
+                                <option key={c} value={c}>{c.toUpperCase()}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
                       
                       {assistantsInSelectedMesa.length === 0 ? (
                         <div className="p-8 text-center text-gray-500 border border-dashed border-[#1e2d4a] rounded-xl text-sm italic">
                           No hay participantes asignados a esta mesa de trabajo.
+                        </div>
+                      ) : filteredAssistants.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500 border border-dashed border-[#1e2d4a] rounded-xl text-sm italic">
+                          No se encontraron participantes con los filtros seleccionados.
                         </div>
                       ) : (
                         <div className="overflow-x-auto">
@@ -580,7 +658,7 @@ export default function ModeradorPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {assistantsInSelectedMesa.map((ast) => {
+                              {filteredAssistants.map((ast) => {
                                 const statusPart = (ast.estado || '').split('|')[0];
                                 const isModerator = statusPart === `MODERADOR_MESA_${selectedMesaId}`;
                                 const isVerified = isModerator || statusPart === 'VERIFICADO';

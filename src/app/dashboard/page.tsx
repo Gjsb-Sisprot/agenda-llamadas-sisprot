@@ -73,6 +73,9 @@ export default function DashboardPage() {
    const [editingMesaIds, setEditingMesaIds] = useState<string[]>([]);
    const [savingMesa, setSavingMesa] = useState(false);
    const [detailPage, setDetailPage] = useState(1);
+   const [filterMunicipio, setFilterMunicipio] = useState('');
+   const [filterParroquia, setFilterParroquia] = useState('');
+   const [filterCondominio, setFilterCondominio] = useState('');
    const [activeJornada, setActiveJornada] = useState<string>('Jornada General');
 
    useEffect(() => {
@@ -243,6 +246,9 @@ export default function DashboardPage() {
 
    useEffect(() => {
      setDetailPage(1);
+     setFilterMunicipio('');
+     setFilterParroquia('');
+     setFilterCondominio('');
    }, [selectedMesaIdForDetail, filtro]);
  
    // Filter list based on selected category
@@ -641,12 +647,23 @@ export default function DashboardPage() {
           const detailList = asistentesFiltrados.filter(
             a => a.mesas_asignadas.some(m => m.id === selectedMesaIdForDetail)
           );
+
+          const uniqueMunicipios = Array.from(new Set(detailList.map(a => a.municipio).filter(Boolean))).sort();
+          const uniqueParroquias = Array.from(new Set(detailList.map(a => a.parroquia).filter(Boolean))).sort();
+          const uniqueCondominios = Array.from(new Set(detailList.map(a => a.condominio).filter(Boolean))).sort();
+
+          const filteredDetailList = detailList.filter(a => {
+            if (filterMunicipio && a.municipio !== filterMunicipio) return false;
+            if (filterParroquia && a.parroquia !== filterParroquia) return false;
+            if (filterCondominio && a.condominio !== filterCondominio) return false;
+            return true;
+          });
           
           const itemsPerPage = 10;
-          const totalPages = Math.max(Math.ceil(detailList.length / itemsPerPage), 1);
+          const totalPages = Math.max(Math.ceil(filteredDetailList.length / itemsPerPage), 1);
           const indexOfLastItem = detailPage * itemsPerPage;
           const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-          const paginatedDetailList = detailList.slice(indexOfFirstItem, indexOfLastItem);
+          const paginatedDetailList = filteredDetailList.slice(indexOfFirstItem, indexOfLastItem);
           
           return selectedMesa ? (
             <div className="bg-[#111a2e] border border-[#1e2d4a] rounded-2xl p-6 space-y-4 animate-slide-up">
@@ -666,6 +683,66 @@ export default function DashboardPage() {
                   Cerrar Detalle
                 </button>
               </div>
+
+              {/* Filtros por Municipio, Parroquia y Condominio */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-[#0e1726]/40 p-4 rounded-xl border border-[#1e2d4a]/60">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Comunidad / Municipio
+                  </label>
+                  <select
+                    value={filterMunicipio}
+                    onChange={e => {
+                      setFilterMunicipio(e.target.value);
+                      setDetailPage(1);
+                    }}
+                    className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                  >
+                    <option value="">TODAS LAS COMUNIDADES</option>
+                    {uniqueMunicipios.map(m => (
+                      <option key={m} value={m}>{m.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Parroquia
+                  </label>
+                  <select
+                    value={filterParroquia}
+                    onChange={e => {
+                      setFilterParroquia(e.target.value);
+                      setDetailPage(1);
+                    }}
+                    className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                  >
+                    <option value="">TODAS LAS PARROQUIAS</option>
+                    {uniqueParroquias.map(p => (
+                      <option key={p} value={p}>{p.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Condominio / Urbanismo
+                  </label>
+                  <select
+                    value={filterCondominio}
+                    onChange={e => {
+                      setFilterCondominio(e.target.value);
+                      setDetailPage(1);
+                    }}
+                    className="w-full bg-[#1a2640] border border-[#1e2d4a] text-white text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-[#60c0ea] uppercase font-semibold"
+                  >
+                    <option value="">TODOS LOS CONDOMINIOS</option>
+                    {uniqueCondominios.map(c => (
+                      <option key={c} value={c}>{c.toUpperCase()}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
  
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
@@ -681,10 +758,10 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e2d4a]">
-                    {detailList.length === 0 ? (
+                    {filteredDetailList.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="py-8 text-center text-gray-500">
-                          No hay ningún asistente registrado en esta mesa de trabajo.
+                          No se encontraron asistentes con los filtros seleccionados.
                         </td>
                       </tr>
                     ) : (
@@ -743,9 +820,9 @@ export default function DashboardPage() {
                   <span className="text-gray-400">
                     Mostrando <span className="font-semibold text-white">{indexOfFirstItem + 1}</span> a{' '}
                     <span className="font-semibold text-white">
-                      {Math.min(indexOfLastItem, detailList.length)}
+                      {Math.min(indexOfLastItem, filteredDetailList.length)}
                     </span>{' '}
-                    de <span className="font-semibold text-white">{detailList.length}</span> asistentes
+                    de <span className="font-semibold text-white">{filteredDetailList.length}</span> asistentes
                   </span>
                   <div className="flex gap-2">
                     <button
