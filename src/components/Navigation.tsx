@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { setSessionActive } from '@/lib/utils';
 import { 
-  ClipboardCheck, BarChart3, Settings, ShieldAlert, LogOut, User
+  ClipboardCheck, BarChart3, Settings, ShieldAlert, LogOut, User, Users
 } from 'lucide-react';
 
 export default function Navigation() {
@@ -29,6 +29,11 @@ export default function Navigation() {
       name: 'Registro Asistencia',
       href: '/registro',
       icon: ClipboardCheck,
+    },
+    {
+      name: 'Lista del Moderador',
+      href: '/moderador',
+      icon: Users,
     },
     {
       name: 'Dashboard Realtime',
