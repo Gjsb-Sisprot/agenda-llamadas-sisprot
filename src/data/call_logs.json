@@ -1,0 +1,60 @@
+[
+  {
+    "id": "9097",
+    "cedula": "V26316794",
+    "informado": true,
+    "primer_contacto": "2026-05-30T16:59:01.737+00:00",
+    "resultado_primer_contacto": "Llamada no contestada",
+    "reagendar_fecha": "2026-06-01T03:01:00.000Z",
+    "requiere_ticket_glpi": false,
+    "ticket_glpi_detalles": null,
+    "updated_at": "2026-05-30T17:02:14.153Z"
+  },
+  {
+    "id": "9085",
+    "cedula": "V12145886",
+    "informado": false,
+    "primer_contacto": "2026-05-30T16:06:41.440Z",
+    "resultado_primer_contacto": "Llamada no contestada",
+    "reagendar_fecha": null,
+    "requiere_ticket_glpi": false,
+    "ticket_glpi_detalles": null,
+    "updated_at": "2026-05-30T16:06:42.123Z"
+  },
+  {
+    "id": "6394",
+    "cedula": "V16563841",
+    "informado": false,
+    "primer_contacto": "2026-05-30T20:27:08.762+00:00",
+    "resultado_primer_contacto": "Reagendado desde speech (no disponible)",
+    "reagendar_fecha": "2026-05-31T18:40:00.000Z",
+    "requiere_ticket_glpi": false,
+    "ticket_glpi_detalles": null,
+    "updated_at": "2026-05-31T13:41:02.380Z",
+    "visita_oficina_fecha": null
+  },
+  {
+    "id": "7093",
+    "cedula": "V17513699",
+    "informado": true,
+    "primer_contacto": "2026-05-30T20:30:35.106Z",
+    "resultado_primer_contacto": null,
+    "reagendar_fecha": null,
+    "visita_oficina_fecha": null,
+    "requiere_ticket_glpi": false,
+    "ticket_glpi_detalles": null,
+    "updated_at": "2026-05-30T20:30:36.268Z"
+  },
+  {
+    "id": "6268",
+    "cedula": "V18702545",
+    "informado": false,
+    "primer_contacto": "2026-05-31T13:54:18.279Z",
+    "resultado_primer_contacto": "Llamada no contestada",
+    "reagendar_fecha": null,
+    "visita_oficina_fecha": null,
+    "requiere_ticket_glpi": false,
+    "ticket_glpi_detalles": null,
+    "updated_at": "2026-05-31T13:54:18.690Z"
+  }
+]

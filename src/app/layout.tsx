@@ -3,8 +3,8 @@ import "./globals.css";
 import Navigation from "@/components/Navigation";
 
 export const metadata: Metadata = {
-  title: "Primer Encuentro de Condominios - Registro y Mesas",
-  description: "Sistema de Registro, Gestión de Asistencia y Asignación de Mesas Temáticas del Encuentro de Condominios.",
+  title: "Agenda de llamadas",
+  description: "Sistema de Gestión de Llamadas y Migración de Clientes - Sisprot Global Fiber.",
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className="antialiased bg-[#0b111e] text-[#f4f4f4] min-h-screen flex flex-col">
+      <body className="antialiased bg-background text-foreground min-h-screen flex flex-col">
         <Navigation />
         <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
           {children}

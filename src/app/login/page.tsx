@@ -6,6 +6,23 @@ import { supabase } from '@/lib/supabase';
 import { hasActiveSession, setSessionActive } from '@/lib/utils';
 import { ShieldCheck, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 
+const USERS_DATABASE: Record<string, { name: string; email: string; pass: string }> = {
+  "georgina@sisprot.com": { name: "Georgina Baladi", email: "georgina@sisprot.com", pass: "georgina123" },
+  "khaloa@sisprot.com": { name: "Khaloa Serrano", email: "khaloa@sisprot.com", pass: "khaloa123" },
+  "derwing@sisprot.com": { name: "Derwing Acevedo", email: "derwing@sisprot.com", pass: "derwing123" },
+  "luis@sisprot.com": { name: "Luis Hidalgo", email: "luis@sisprot.com", pass: "luis123" },
+  "sandy@sisprot.com": { name: "Sandy Rodriguez", email: "sandy@sisprot.com", pass: "sandy123" },
+  "yhosselyn@sisprot.com": { name: "Yhosselyn Perez", email: "yhosselyn@sisprot.com", pass: "yhosselyn123" },
+  "yetzareth@sisprot.com": { name: "Yetzareth Bravo", email: "yetzareth@sisprot.com", pass: "yetzareth123" },
+  "paola@sisprot.com": { name: "Paola Guanipa", email: "paola@sisprot.com", pass: "paola123" },
+  "guillermo@sisprot.com": { name: "Guillermo Sanchez", email: "guillermo@sisprot.com", pass: "guillermo123" },
+  "levi@sisprot.com": { name: "Levi Oliveros", email: "levi@sisprot.com", pass: "levi123" },
+  "barbara@sisprot.com": { name: "Barbara Rodriguez", email: "barbara@sisprot.com", pass: "barbara123" },
+  "milagros@sisprot.com": { name: "Milagros Teran", email: "milagros@sisprot.com", pass: "milagros123" },
+  "jannerys@sisprot.com": { name: "Jannerys Pirela", email: "jannerys@sisprot.com", pass: "jannerys123" },
+  "thais@sisprot.com": { name: "Thais Bejas", email: "thais@sisprot.com", pass: "thais123" }
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -15,7 +32,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (hasActiveSession()) {
-      router.replace('/dashboard');
+      router.replace('/');
     }
   }, [router]);
 
@@ -25,40 +42,19 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      const normalizedEmail = email.trim().toLowerCase();
+      const user = USERS_DATABASE[normalizedEmail];
 
-      if (authError) {
+      if (!user || user.pass !== password) {
         throw new Error('Credenciales inválidas o correo no registrado.');
       }
 
-      if (!authData.user) {
-        throw new Error('No se pudo obtener la información del usuario.');
-      }
-
-      // Check responsibles table
-      const { data: responsibleData, error: dbError } = await supabase
-        .from('responsibles')
-        .select('*')
-        .eq('user_id', authData.user.id)
-        .maybeSingle();
-
-      if (dbError || !responsibleData) {
-        await supabase.auth.signOut();
-        throw new Error('Su cuenta no está registrada como responsable autorizado.');
-      }
-
-      if (!responsibleData.is_active) {
-        await supabase.auth.signOut();
-        throw new Error('Su usuario responsable se encuentra inactivo.');
-      }
-
       setSessionActive(true);
-      localStorage.setItem('user_name', responsibleData.full_name || responsibleData.email || email);
+      localStorage.setItem('user_name', user.name);
+      localStorage.setItem('user_email', user.email);
 
-      router.replace('/dashboard');
+      router.replace('/');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error inesperado');
     } finally {
