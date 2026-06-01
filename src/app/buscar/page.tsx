@@ -55,6 +55,10 @@ export default function BuscarPage() {
   // Guard: null = not answered yet, true = answered, false = did not answer
   const [contestoLlamada, setContestoLlamada] = useState<boolean | null>(null);
 
+  // WhatsApp States
+  const [whatsappMsg, setWhatsappMsg] = useState('');
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
+
   // Form states for client log
   const [resultadoContacto, setResultadoContacto] = useState('');
   const [reagendarDate, setReagendarDate] = useState('');
@@ -196,6 +200,7 @@ export default function BuscarPage() {
     setShowSpeechModal(false);
     setActiveSpeechStage(0);
     setStageAnswers({});
+    setWhatsappMsg('');
   };
 
   const handleNoContesto = async () => {
@@ -293,6 +298,53 @@ export default function BuscarPage() {
       setTimerActive(false);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleSendWhatsApp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cliente || !whatsappMsg.trim()) return;
+    setWhatsappLoading(true);
+
+    try {
+      // 1. Verify WhatsApp number
+      const checkRes = await fetch('/api/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'check', number: cliente.telefono })
+      });
+
+      if (!checkRes.ok) throw new Error('Error al verificar el número en WhatsApp.');
+      const checkData = await checkRes.json();
+
+      if (!checkData.success || !checkData.exists) {
+        showNotification('error', 'El número de teléfono no cuenta con WhatsApp activo.');
+        setWhatsappLoading(false);
+        return;
+      }
+
+      // 2. Send message
+      const sendRes = await fetch('/api/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send', number: cliente.telefono, text: whatsappMsg })
+      });
+
+      if (!sendRes.ok) throw new Error('Error al enviar el mensaje de WhatsApp.');
+      const sendData = await sendRes.json();
+
+      if (sendData.success) {
+        showNotification('success', 'Mensaje de WhatsApp enviado con éxito.');
+        setWhatsappMsg('');
+      } else {
+        showNotification('error', sendData.error || 'No se pudo enviar el mensaje.');
+      }
+    } catch (err: unknown) {
+      console.error(err);
+      const message = err instanceof Error ? err.message : 'Error en la conexión con WhatsApp.';
+      showNotification('error', message);
+    } finally {
+      setWhatsappLoading(false);
     }
   };
 
@@ -705,6 +757,43 @@ export default function BuscarPage() {
                   <MessageSquare className="h-5 w-5 group-hover:scale-115 transition-transform text-inherit" />
                   <span>Ver Speech de Llamada (7 Etapas)</span>
                 </button>
+              </div>
+
+              {/* WhatsApp Messaging Widget */}
+              <div className="bg-[#0e1726]/40 border border-border/80 rounded-xl p-3.5 space-y-3">
+                <div className="flex items-center gap-1.5 border-b border-border/50 pb-2">
+                  <MessageSquare className="h-4 w-4 text-[#60c0ea]" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-wider">Enviar WhatsApp al Cliente</span>
+                </div>
+                
+                <form onSubmit={handleSendWhatsApp} className="space-y-2.5">
+                  <textarea
+                    rows={2}
+                    value={whatsappMsg}
+                    onChange={(e) => setWhatsappMsg(e.target.value)}
+                    placeholder="Escribe el mensaje de WhatsApp..."
+                    className="w-full bg-[#0b111e]/80 border border-border rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#60c0ea] text-white placeholder-gray-500"
+                    required
+                  />
+                  
+                  <button
+                    type="submit"
+                    disabled={whatsappLoading || !whatsappMsg.trim()}
+                    className="w-full bg-[#004e74] hover:bg-[#60c0ea] hover:text-[#002851] text-white font-bold py-2 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {whatsappLoading ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Verificando y Enviando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span>Verificar y Enviar</span>
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
 
             </div>
