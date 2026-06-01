@@ -203,6 +203,32 @@ export default function BuscarPage() {
     setWhatsappMsg('');
   };
 
+  const triggerWebhookPortalPago = async (contrato: string) => {
+    if (!contrato) return;
+    try {
+      await fetch('https://n8n.sisprottaurus.com/webhook/notificacion_cliente_portal_pago_ciclo_01', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ CONTRATO: contrato })
+      });
+    } catch (err) {
+      console.error('Failed to trigger portal pago webhook:', err);
+    }
+  };
+
+  const triggerWebhookNoContesto = async (contrato: string) => {
+    if (!contrato) return;
+    try {
+      await fetch('https://n8n.sisprottaurus.com/webhook/Intento-contacto-sin-respuesta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ CONTRATO: contrato })
+      });
+    } catch (err) {
+      console.error('Failed to trigger no contesto webhook:', err);
+    }
+  };
+
   const handleNoContesto = async () => {
     if (!cliente) return;
     setActionLoading(true);
@@ -233,6 +259,8 @@ export default function BuscarPage() {
       if (!res.ok) throw new Error('API response not ok');
       const resData = await res.json();
       if (resData.error) throw new Error(resData.error);
+      
+      await triggerWebhookNoContesto(cliente.nro_contrato || cliente.id);
     } catch (err) {
       console.warn('Save failed, writing to localStorage:', err);
     } finally {
@@ -920,7 +948,12 @@ export default function BuscarPage() {
                   return (
                     <button
                       key={stg.id}
-                      onClick={() => setActiveSpeechStage(idx)}
+                      onClick={() => {
+                        if (idx === 3 && activeSpeechStage === 2 && stageAnswers[2] === true) {
+                          triggerWebhookPortalPago(cliente.nro_contrato || cliente.id);
+                        }
+                        setActiveSpeechStage(idx);
+                      }}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200 ${
                         isActive
                           ? 'bg-[#60c0ea] text-[#002851] shadow-md shadow-[#60c0ea]/10 scale-105'
@@ -1194,7 +1227,12 @@ export default function BuscarPage() {
                 {activeSpeechStage < 6 ? (
                   <button
                     disabled={stageAnswers[activeSpeechStage] !== true}
-                    onClick={() => setActiveSpeechStage(prev => prev + 1)}
+                    onClick={() => {
+                      if (activeSpeechStage === 2) {
+                        triggerWebhookPortalPago(cliente.nro_contrato || cliente.id);
+                      }
+                      setActiveSpeechStage(prev => prev + 1);
+                    }}
                     className="px-4 py-2 bg-[#60c0ea] hover:bg-[#4eaad4] text-[#002851] rounded-xl text-xs font-black uppercase transition-all flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Siguiente Etapa
@@ -1222,6 +1260,7 @@ export default function BuscarPage() {
                           body: JSON.stringify({ id: cliente.id, cedula: cliente.cedula, ...updatedData })
                         });
                         if (!res.ok) throw new Error('API error');
+                        await triggerWebhookPortalPago(cliente.nro_contrato || cliente.id);
                         showNotification('success', 'Cliente informado con éxito.');
                       } catch (err) {
                         console.error(err);
