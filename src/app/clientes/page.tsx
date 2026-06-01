@@ -400,7 +400,9 @@ export default function ClientesPage() {
     }
   };
 
-  const myClientes = operatorName ? clientes.filter(c => c.operador === operatorName) : clientes;
+  const myClientes = operatorName && operatorName !== "Elisaul Reyes"
+    ? clientes.filter(c => c.operador === operatorName)
+    : clientes;
 
   const clientesFiltrados = myClientes.filter(c => {
     if (c.resultado_primer_contacto === 'Agendado para visita informativa') return false;
@@ -492,7 +494,7 @@ export default function ClientesPage() {
         </div>
 
         {/* Meta Diaria del Operador */}
-        {operatorName && (
+        {operatorName && operatorName !== "Elisaul Reyes" && (
           <div className="bg-card border border-border rounded-2xl p-4 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-[#09152b] to-[#0c2447] border-[#004e74]/30 animate-fade-in">
             <div className="space-y-1">
               <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest block">Meta Diaria</span>

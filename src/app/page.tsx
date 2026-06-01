@@ -86,7 +86,9 @@ export default function DashboardPage() {
     }
   }, [operatorName, fetchClientes]);
 
-  const myClientes = operatorName ? clientes.filter(c => c.operador === operatorName) : clientes;
+  const myClientes = operatorName && operatorName !== "Elisaul Reyes"
+    ? clientes.filter(c => c.operador === operatorName)
+    : clientes;
 
   // Lista de planes únicos para filtros
   const planesDisponibles = Array.from(new Set(myClientes.map(c => c.plan_contratado))).sort();
@@ -175,7 +177,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Meta Diaria del Operador */}
-      {operatorName && (
+      {operatorName && operatorName !== "Elisaul Reyes" && (
         <div className="bg-card border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-br from-[#09152b] to-[#0c2447] border-[#004e74]/30 animate-fade-in">
           <div className="space-y-2 flex-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-wider">

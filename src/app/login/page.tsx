@@ -7,6 +7,7 @@ import { hasActiveSession, setSessionActive } from '@/lib/utils';
 import { ShieldCheck, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 
 const USERS_DATABASE: Record<string, { name: string; email: string; pass: string }> = {
+  "elisaul@sisprot.com": { name: "Elisaul Reyes", email: "elisaul@sisprot.com", pass: "elisaul123" },
   "georgina@sisprot.com": { name: "Georgina Baladi", email: "georgina@sisprot.com", pass: "georgina123" },
   "khaloa@sisprot.com": { name: "Khaloa Serrano", email: "khaloa@sisprot.com", pass: "khaloa123" },
   "derwing@sisprot.com": { name: "Derwing Acevedo", email: "derwing@sisprot.com", pass: "derwing123" },
