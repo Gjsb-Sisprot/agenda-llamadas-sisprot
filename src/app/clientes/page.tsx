@@ -235,7 +235,7 @@ export default function ClientesPage() {
     const isVisitaInformativa = newIntentos >= 3;
 
     if (isVisitaInformativa) {
-      await triggerWebhookNoContesto(selectedCliente.nro_contrato || selectedCliente.id);
+      await triggerWebhookNoContesto(selectedCliente.id);
     }
 
     const updatedData = {
@@ -1100,7 +1100,7 @@ export default function ClientesPage() {
                       key={stg.id}
                       onClick={() => {
                         if (idx === 3 && activeSpeechStage === 2 && stageAnswers[2] === true) {
-                          triggerWebhookPortalPago(selectedCliente.nro_contrato || selectedCliente.id);
+                          triggerWebhookPortalPago(selectedCliente.id);
                         }
                         setActiveSpeechStage(idx);
                       }}
@@ -1361,7 +1361,7 @@ export default function ClientesPage() {
                     disabled={stageAnswers[activeSpeechStage] !== true}
                     onClick={() => {
                       if (activeSpeechStage === 2) {
-                        triggerWebhookPortalPago(selectedCliente.nro_contrato || selectedCliente.id);
+                        triggerWebhookPortalPago(selectedCliente.id);
                       }
                       setActiveSpeechStage(prev => prev + 1);
                     }}

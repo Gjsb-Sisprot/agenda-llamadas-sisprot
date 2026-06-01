@@ -260,7 +260,7 @@ export default function BuscarPage() {
       const resData = await res.json();
       if (resData.error) throw new Error(resData.error);
       
-      await triggerWebhookNoContesto(cliente.nro_contrato || cliente.id);
+      await triggerWebhookNoContesto(cliente.id);
     } catch (err) {
       console.warn('Save failed, writing to localStorage:', err);
     } finally {
@@ -950,7 +950,7 @@ export default function BuscarPage() {
                       key={stg.id}
                       onClick={() => {
                         if (idx === 3 && activeSpeechStage === 2 && stageAnswers[2] === true) {
-                          triggerWebhookPortalPago(cliente.nro_contrato || cliente.id);
+                          triggerWebhookPortalPago(cliente.id);
                         }
                         setActiveSpeechStage(idx);
                       }}
@@ -1229,7 +1229,7 @@ export default function BuscarPage() {
                     disabled={stageAnswers[activeSpeechStage] !== true}
                     onClick={() => {
                       if (activeSpeechStage === 2) {
-                        triggerWebhookPortalPago(cliente.nro_contrato || cliente.id);
+                        triggerWebhookPortalPago(cliente.id);
                       }
                       setActiveSpeechStage(prev => prev + 1);
                     }}
@@ -1260,7 +1260,7 @@ export default function BuscarPage() {
                           body: JSON.stringify({ id: cliente.id, cedula: cliente.cedula, ...updatedData })
                         });
                         if (!res.ok) throw new Error('API error');
-                        await triggerWebhookPortalPago(cliente.nro_contrato || cliente.id);
+                        await triggerWebhookPortalPago(cliente.id);
                         showNotification('success', 'Cliente informado con éxito.');
                       } catch (err) {
                         console.error(err);
