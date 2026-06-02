@@ -28,6 +28,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // 1b. Allow secure external Power BI dashboard queries via token
+  if (pathname === '/api/powerbi') {
+    const authHeader = request.headers.get('Authorization');
+    const expectedToken = process.env.POWERBI_TOKEN;
+    if (expectedToken && authHeader === `Bearer ${expectedToken}`) {
+      return NextResponse.next();
+    }
+  }
+
   // 2. Verify Session
   let session = null;
   if (sessionToken) {
