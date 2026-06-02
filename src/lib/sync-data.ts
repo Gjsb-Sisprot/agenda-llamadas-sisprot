@@ -1,15 +1,41 @@
 import { createClient } from '@supabase/supabase-js';
 
 // 1. Configuración de Supabase
-const supabaseUrl = 'https://djjuvkrhhgpbnokrafjw.supabase.co';
-const supabaseAnonKey = 'sb_publishable_fed-1yCE4ZEo5W10Mrcypw_PD7Z770A';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
 // 2. Configuración de la nueva API pública del CRM
-const API_URL = 'https://api.sisprotgf.com/api/public/contracts/?status=16,19&remove_pagination=True&cycle=10&page=1&provisional=True&client_type=1';
-const API_KEY = 'xK9pW2vM4zY0nR1tQ5sJ8hF3cD6aB1uE9iO2mN7rT4bV5xS8gL';
+const API_URL = process.env.CRM_API_URL || '';
+const API_KEY = process.env.CRM_API_KEY || '';
+
+const OPERADORES = [
+  "Georgina Baladi",
+  "Khaloa Serrano",
+  "Derwing Acevedo",
+  "Luis Hidalgo",
+  "Sandy Rodriguez",
+  "Yhosselyn Perez",
+  "Yetzareth Bravo",
+  "Paola Guanipa",
+  "Guillermo Sanchez",
+  "Levi Oliveros",
+  "Barbara Rodriguez",
+  "Milagros Teran",
+  "Jannerys Pirela",
+  "Thais Bejas"
+];
+
+function getStableOperator(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % OPERADORES.length;
+  return OPERADORES[index];
+}
 
 // 3. Interfaz de la nueva estructura del payload
 interface CRMPublicClient {
@@ -42,6 +68,10 @@ interface CRMPublicContract {
 }
 
 async function syncCRMToSupabase() {
+  if (!supabaseUrl || !supabaseAnonKey || !API_URL || !API_KEY) {
+    console.error('❌ Error: Variables de entorno para la sincronización incompletas (.env).');
+    return;
+  }
   console.log('🔄 Iniciando descarga de contratos desde la API pública del CRM...');
   try {
     const response = await fetch(API_URL, {
@@ -114,6 +144,7 @@ async function syncCRMToSupabase() {
           banco_nombre: null,
           banco_nro_cuenta: null,
           created_by: null,
+          operador: getStableOperator(c.id.toString()),
           // Activar el registro
           activo: true,
         };

@@ -6,30 +6,10 @@ import {
   Loader2, X, Clock, Check, ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
-
-interface ClienteLlamada {
-  id: string;
-  nombre: string;
-  apellido: string;
-  cedula?: string;
-  nro_contrato?: string;
-  telefono: string;
-  plan_contratado: string;
-  costo_plan: number;
-  ciclo_actual: number;
-  informado: boolean;
-  primer_contacto: string | null;
-  resultado_primer_contacto: string | null;
-  reagendar_fecha: string | null;
-  requiere_ticket_glpi: boolean;
-  ticket_glpi_detalles: string | null;
-  duracion_segundos?: number | null;
-  intentos_fallidos?: number | null;
-}
+import { useClientes, ClienteLlamada } from '@/hooks/useClientes';
 
 export default function CalendarioPage() {
-  const [loading, setLoading] = useState(true);
-  const [clientes, setClientes] = useState<ClienteLlamada[]>([]);
+  const { clientes, setClientes, loading } = useClientes();
   const [selectedCliente, setSelectedCliente] = useState<ClienteLlamada | null>(null);
   const [showSpeechModal, setShowSpeechModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -59,67 +39,6 @@ export default function CalendarioPage() {
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
-
-  async function fetchClientes() {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/clientes');
-      if (!res.ok) throw new Error('API response not ok');
-      const data = await res.json();
-      if (data && !data.error) {
-        const savedEdits = localStorage.getItem('clientes_editados');
-        if (savedEdits) {
-          try {
-            const parsed = JSON.parse(savedEdits) as ClienteLlamada[];
-            const merged = data.map((c: ClienteLlamada) => {
-              const saved = parsed.find(p => p.id === c.id);
-              return saved ? { ...c, ...saved } : c;
-            });
-            setClientes(merged);
-          } catch {
-            setClientes(data);
-          }
-        } else {
-          setClientes(data);
-        }
-      } else {
-        throw new Error(data.error || 'Unknown error');
-      }
-    } catch (err) {
-      console.warn('CRM API: failed to fetch clients or route inactive. Using static fallback data.', err);
-      // Fallback a datos estáticos si Supabase no está conectado
-      const mockData: ClienteLlamada[] = [
-        { id: '1', nombre: 'Juan', apellido: 'Pérez', cedula: 'V-12345678', nro_contrato: 'CTR-0001', telefono: '+584121234567', plan_contratado: 'Plan Fibra 100 Mbps', costo_plan: 20.00, ciclo_actual: 30, informado: false, primer_contacto: null, resultado_primer_contacto: null, reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '2', nombre: 'María', apellido: 'Gómez', cedula: 'V-87654321', nro_contrato: 'CTR-0002', telefono: '+584149876543', plan_contratado: 'Plan Fibra 200 Mbps', costo_plan: 30.00, ciclo_actual: 30, informado: true, primer_contacto: '2026-05-29 09:30:00-04', resultado_primer_contacto: 'Se le informó la migración al ciclo 1. Está de acuerdo.', reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '3', nombre: 'Carlos', apellido: 'Rodríguez', cedula: 'V-11112222', nro_contrato: 'CTR-0003', telefono: '+584161112233', plan_contratado: 'Plan Fibra 300 Mbps', costo_plan: 45.00, ciclo_actual: 30, informado: false, primer_contacto: '2026-05-29 14:15:00-04', resultado_primer_contacto: 'Llamada no contestada, buzón de voz.', reagendar_fecha: '2026-05-30T10:00', requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '4', nombre: 'Ana', apellido: 'Martínez', cedula: 'V-33334444', nro_contrato: 'CTR-0004', telefono: '+584244445566', plan_contratado: 'Plan Fibra 500 Mbps', costo_plan: 60.00, ciclo_actual: 1, informado: true, primer_contacto: '2026-05-28 11:00:00-04', resultado_primer_contacto: 'Confirmada recepción de información.', reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '5', nombre: 'Luis', apellido: 'Hernández', cedula: 'V-55556666', nro_contrato: 'CTR-0005', telefono: '+584125556677', plan_contratado: 'Plan Fibra 100 Mbps', costo_plan: 20.00, ciclo_actual: 30, informado: false, primer_contacto: '2026-05-28 15:45:00-04', resultado_primer_contacto: 'El cliente no reconoce el cambio de ciclo y exige soporte técnico por lentitud.', reagendar_fecha: '2026-05-31T14:30', requiere_ticket_glpi: true, ticket_glpi_detalles: 'GLPI-98432: Cliente se niega a migración y presenta fallas en router ONT.' },
-        { id: '6', nombre: 'Sofía', apellido: 'Díaz', cedula: 'V-77778888', nro_contrato: 'CTR-0006', telefono: '+584147778899', plan_contratado: 'Plan Fibra 1 Gbps', costo_plan: 100.00, ciclo_actual: 30, informado: false, primer_contacto: null, resultado_primer_contacto: null, reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '7', nombre: 'Pedro', apellido: 'Álvarez', cedula: 'V-99990000', nro_contrato: 'CTR-0007', telefono: '+584128889900', plan_contratado: 'Plan Fibra 200 Mbps', costo_plan: 30.00, ciclo_actual: 1, informado: false, primer_contacto: null, resultado_primer_contacto: null, reagendar_fecha: '2026-06-02T09:15', requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '8', nombre: 'Elena', apellido: 'Torres', cedula: 'V-22223333', nro_contrato: 'CTR-0008', telefono: '+584249990011', plan_contratado: 'Plan Fibra 300 Mbps', costo_plan: 45.00, ciclo_actual: 30, informado: true, primer_contacto: '2026-05-30 08:00:00-04', resultado_primer_contacto: 'Informada de la migración del ciclo 30 al 1.', reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null }
-      ];
-      setClientes(mockData);
-
-      // Load edits from localStorage if available
-      const savedEdits = localStorage.getItem('clientes_editados');
-      if (savedEdits) {
-        try {
-          const parsed = JSON.parse(savedEdits) as ClienteLlamada[];
-          const merged = mockData.map(c => {
-            const saved = parsed.find(p => p.id === c.id);
-            return saved ? { ...c, ...saved } : c;
-          });
-          setClientes(merged);
-        } catch {}
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchClientes();
-  }, []);
 
   // Update form fields when selected client changes
   useEffect(() => {
@@ -172,7 +91,7 @@ export default function CalendarioPage() {
 
       showNotification('success', 'Bitácora guardada con éxito.');
       
-      // Update local state
+      // Update local state in parent hook
       const updatedList = clientes.map(c => 
         c.id === selectedCliente.id 
           ? { ...c, ...updatedData } 
@@ -184,20 +103,13 @@ export default function CalendarioPage() {
       // Mirror locally
       localStorage.setItem('clientes_editados', JSON.stringify(updatedList));
     } catch (err) {
-      console.error('API Save failed, saving to localStorage fallback:', err);
-      const updatedList = clientes.map(c => 
-        c.id === selectedCliente.id 
-          ? { ...c, ...updatedData } 
-          : c
-      );
-      setClientes(updatedList);
-      setSelectedCliente({ ...selectedCliente, ...updatedData });
-      localStorage.setItem('clientes_editados', JSON.stringify(updatedList));
-      showNotification('success', 'Registro guardado localmente.');
+      console.error('API Save failed:', err);
+      showNotification('error', 'Error al guardar el registro en Supabase.');
     } finally {
       setActionLoading(false);
     }
   };
+
   const generateSpeechText = (cliente: ClienteLlamada) => {
     const clientFullName = cliente.apellido ? `${cliente.nombre} ${cliente.apellido}` : cliente.nombre;
     const saludo = `Hola, estimado(a) **${clientFullName}**, le saludamos de **Sisprot Global Fiber** en relación a su servicio de Internet.`;
@@ -222,7 +134,6 @@ export default function CalendarioPage() {
   };
 
   const getFirstDayOfMonth = (year: number, month: number) => {
-    // 0: Sunday, 1: Monday, etc.
     return new Date(year, month, 1).getDay();
   };
 
@@ -234,11 +145,9 @@ export default function CalendarioPage() {
     setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
   };
 
-  // Generate grid cells
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDayIndex = getFirstDayOfMonth(currentYear, currentMonth);
   
-  // Previous month days to pad beginning of grid
   const prevMonthDaysCount = getDaysInMonth(currentYear, currentMonth - 1);
   const paddingCells: { day: number; isCurrentMonth: false; date: Date }[] = [];
   for (let i = firstDayIndex - 1; i >= 0; i--) {
@@ -250,7 +159,6 @@ export default function CalendarioPage() {
     });
   }
 
-  // Current month cells
   const currentMonthCells: { day: number; isCurrentMonth: true; date: Date }[] = [];
   for (let d = 1; d <= daysInMonth; d++) {
     currentMonthCells.push({
@@ -260,7 +168,6 @@ export default function CalendarioPage() {
     });
   }
 
-  // Combined cells (padded to 35 or 42 grid cells)
   const allCells = [...paddingCells, ...currentMonthCells];
   const remainingCells = 42 - allCells.length;
   for (let d = 1; d <= remainingCells; d++) {
@@ -388,7 +295,7 @@ export default function CalendarioPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            {/* Left: Monthly Calendar View (8 cols) */}
+            {/* Left: Calendar View (8 cols) */}
             <div className="lg:col-span-8 bg-card border border-border rounded-2xl shadow-xl overflow-hidden flex flex-col">
               
               {/* Month Header Controller */}
@@ -437,7 +344,6 @@ export default function CalendarioPage() {
                   const cellMonth = cell.date.getMonth();
                   const cellDay = cell.date.getDate();
 
-                  // Filter clients scheduled for this cell day
                   // Filter clients scheduled for this cell day or with GLPI ticket from this day
                   const dayClients = clientes.filter(c => {
                     const isVisita = c.resultado_primer_contacto?.toLowerCase().includes('visita');
@@ -479,7 +385,6 @@ export default function CalendarioPage() {
                     return timeA - timeB;
                   });
 
-                  // Check if today
                   const today = new Date();
                   const isToday = today.getFullYear() === cellYear &&
                                   today.getMonth() === cellMonth &&
@@ -509,7 +414,7 @@ export default function CalendarioPage() {
                         )}
                       </div>
 
-                      {/* Clients lists */}
+                      {/* Clients list */}
                       <div className="space-y-1 overflow-y-auto max-h-[72px] pr-0.5 scrollbar-thin">
                         {dayClients.map((c) => {
                           const isVisita = c.resultado_primer_contacto?.toLowerCase().includes('visita');
@@ -696,7 +601,7 @@ export default function CalendarioPage() {
                   </div>
                   <h3 className="text-base font-bold text-foreground uppercase">Visualizador de Fichas</h3>
                   <p className="text-muted-foreground text-xs max-w-xs mx-auto">
-                    Haz clic en cualquiera de los bloques de clientes programados dentro del calendario para desplegar los detalles de llamada,speech personalizado y registrar avances.
+                    Haz clic en cualquiera de los bloques de clientes programados dentro del calendario para desplegar los detalles de llamada, speech personalizado y registrar avances.
                   </p>
                   
                   {/* Shortcut to clients listing */}

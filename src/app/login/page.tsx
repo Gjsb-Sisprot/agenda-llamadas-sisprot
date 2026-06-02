@@ -2,27 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+
 import { hasActiveSession, setSessionActive } from '@/lib/utils';
 import { ShieldCheck, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
-
-const USERS_DATABASE: Record<string, { name: string; email: string; pass: string }> = {
-  "elisaul@sisprot.com": { name: "Elisaul Reyes", email: "elisaul@sisprot.com", pass: "elisaul123" },
-  "georgina@sisprot.com": { name: "Georgina Baladi", email: "georgina@sisprot.com", pass: "georgina123" },
-  "khaloa@sisprot.com": { name: "Khaloa Serrano", email: "khaloa@sisprot.com", pass: "khaloa123" },
-  "derwing@sisprot.com": { name: "Derwing Acevedo", email: "derwing@sisprot.com", pass: "derwing123" },
-  "luis@sisprot.com": { name: "Luis Hidalgo", email: "luis@sisprot.com", pass: "luis123" },
-  "sandy@sisprot.com": { name: "Sandy Rodriguez", email: "sandy@sisprot.com", pass: "sandy123" },
-  "yhosselyn@sisprot.com": { name: "Yhosselyn Perez", email: "yhosselyn@sisprot.com", pass: "yhosselyn123" },
-  "yetzareth@sisprot.com": { name: "Yetzareth Bravo", email: "yetzareth@sisprot.com", pass: "yetzareth123" },
-  "paola@sisprot.com": { name: "Paola Guanipa", email: "paola@sisprot.com", pass: "paola123" },
-  "guillermo@sisprot.com": { name: "Guillermo Sanchez", email: "guillermo@sisprot.com", pass: "guillermo123" },
-  "levi@sisprot.com": { name: "Levi Oliveros", email: "levi@sisprot.com", pass: "levi123" },
-  "barbara@sisprot.com": { name: "Barbara Rodriguez", email: "barbara@sisprot.com", pass: "barbara123" },
-  "milagros@sisprot.com": { name: "Milagros Teran", email: "milagros@sisprot.com", pass: "milagros123" },
-  "jannerys@sisprot.com": { name: "Jannerys Pirela", email: "jannerys@sisprot.com", pass: "jannerys123" },
-  "thais@sisprot.com": { name: "Thais Bejas", email: "thais@sisprot.com", pass: "thais123" }
-};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,17 +25,22 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
       const normalizedEmail = email.trim().toLowerCase();
-      const user = USERS_DATABASE[normalizedEmail];
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, password })
+      });
 
-      if (!user || user.pass !== password) {
-        throw new Error('Credenciales inválidas o correo no registrado.');
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Credenciales inválidas o correo no registrado.');
       }
 
       setSessionActive(true);
-      localStorage.setItem('user_name', user.name);
-      localStorage.setItem('user_email', user.email);
+      localStorage.setItem('user_name', data.user.name);
+      localStorage.setItem('user_email', data.user.email);
 
       router.replace('/');
     } catch (err: unknown) {

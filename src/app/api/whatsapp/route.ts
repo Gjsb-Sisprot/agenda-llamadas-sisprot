@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 
-const baseURL = process.env.NEXT_PUBLIC_EVOLUTION_API_URL || 'https://sisprot-evolution-api.x8cfq6.easypanel.host';
-const apiKey = process.env.EVOLUTION_API_KEY || '26F9D106EA66-4FE6-96EF-A6057B5131B7';
-const instanceName = process.env.EVOLUTION_INSTANCE_NAME || 'Sisprot%20GF%20CallCenter%20Definitivo';
+const baseURL = process.env.NEXT_PUBLIC_EVOLUTION_API_URL || '';
+const apiKey = process.env.EVOLUTION_API_KEY || '';
+const instanceName = process.env.EVOLUTION_INSTANCE_NAME || '';
 
 function formatNumber(number: string): string {
   let clean = number.replace(/\D/g, '');
@@ -16,6 +16,11 @@ function formatNumber(number: string): string {
 
 export async function POST(request: Request) {
   try {
+    if (!baseURL || !apiKey || !instanceName) {
+      console.error('[API_WHATSAPP] Missing Evolution API environment variables');
+      return NextResponse.json({ success: false, error: 'Configuración del servidor incompleta (Variables de WhatsApp)' }, { status: 500 });
+    }
+
     const { action, number, text } = await request.json();
 
     if (!number) {

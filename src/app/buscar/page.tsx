@@ -1,378 +1,74 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useClientes } from '@/hooks/useClientes';
 import { 
   Search, MessageSquare, AlertCircle, Save, CheckCircle2, 
   Loader2, UserCheck, ArrowLeft, Phone, PhoneOff, Clock, Check, X,
   Mail
 } from 'lucide-react';
 
-interface ClienteLlamada {
-  id: string;
-  client_id?: number | null;
-  nombre: string;
-  apellido: string;
-  cedula?: string | null;
-  email?: string | null;
-  nro_contrato?: string | null;
-  telefono: string;
-  plan_contratado: string;
-  plan_id?: number | null;
-  costo_plan: number;
-  deuda_bs?: number | null;
-  ciclo_actual: number;
-  estado?: string | null;
-  estado_id?: number | null;
-  migrate?: boolean;
-  direccion?: string | null;
-  sector?: string | null;
-  parroquia?: string | null;
-  contract_tag?: string | null;
-  retaining_client?: boolean;
-  banco_nombre?: string | null;
-  banco_nro_cuenta?: string | null;
-  created_by?: string | null;
-  created_at?: string | null;
-  informado: boolean;
-  primer_contacto: string | null;
-  resultado_primer_contacto: string | null;
-  reagendar_fecha: string | null;
-  requiere_ticket_glpi: boolean;
-  ticket_glpi_detalles: string | null;
-  duracion_segundos?: number | null;
-  intentos_fallidos?: number | null;
-}
-
 export default function BuscarPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  
-  // Loaded client state
-  const [cliente, setCliente] = useState<ClienteLlamada | null>(null);
 
-  // Guard: null = not answered yet, true = answered, false = did not answer
-  const [contestoLlamada, setContestoLlamada] = useState<boolean | null>(null);
+  const {
+    loading,
+    clientes,
+    selectedCliente: cliente,
+    setSelectedCliente: setCliente,
+    actionLoading,
+    notification,
+    resultadoContacto,
+    setResultadoContacto,
+    reagendarDate,
+    setReagendarDate,
+    informadoVal,
+    setInformadoVal,
+    contestoLlamada,
+    setContestoLlamada,
+    secondsElapsed,
+    timerActive,
+    setTimerActive,
+    duracionLlamada,
+    whatsappMsg,
+    setWhatsappMsg,
+    whatsappLoading,
+    showSpeechModal,
+    setShowSpeechModal,
+    activeSpeechStage,
+    setActiveSpeechStage,
+    stageAnswers,
+    setStageAnswers,
+    handleFinalizarLlamada,
+    formatTime,
+    handleSaveDetails,
+    handleNoContesto,
+    handleSendWhatsApp,
+    getSpeechStages,
+    handleReagendarSpeech,
+    handleAgendarVisitaSpeech,
+    handleFinalizarSpeech,
+    setSecondsElapsed,
+    triggerWebhookPortalPago,
+  } = useClientes();
 
-  // WhatsApp States
-  const [whatsappMsg, setWhatsappMsg] = useState('');
-  const [whatsappLoading, setWhatsappLoading] = useState(false);
-
-  // Form states for client log
-  const [resultadoContacto, setResultadoContacto] = useState('');
-  const [reagendarDate, setReagendarDate] = useState('');
-  const [informadoVal, setInformadoVal] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-
-  // Stopwatch/timer state
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
-  const [timerActive, setTimerActive] = useState(false);
-  const [duracionLlamada, setDuracionLlamada] = useState<number | null>(null);
-
-  // Speech modal states
-  const [operatorName, setOperatorName] = useState<string | null>(null);
-  const [showSpeechModal, setShowSpeechModal] = useState(false);
-  const [activeSpeechStage, setActiveSpeechStage] = useState(0);
-  const [stageAnswers, setStageAnswers] = useState<Record<number, boolean>>({});
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setOperatorName(localStorage.getItem('user_name'));
-    }
-  }, []);
-
-  const handleFinalizarLlamada = () => {
-    setTimerActive(false);
-    setDuracionLlamada(secondsElapsed);
-  };
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (timerActive) {
-      interval = setInterval(() => {
-        setSecondsElapsed(prev => prev + 1);
-      }, 1000);
-    } else {
-      if (interval) clearInterval(interval);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [timerActive]);
-
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  const showNotification = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => {
-      setNotification(null);
-    }, 4000);
-  };
-
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim().toLowerCase();
     if (!query) return;
 
-    setLoading(true);
     setErrorMsg('');
-    setCliente(null);
-    setContestoLlamada(null);
+    const matched = clientes.find(c => 
+      (c.cedula && c.cedula.toLowerCase() === query) ||
+      (c.nro_contrato && c.nro_contrato.toLowerCase() === query) ||
+      `${c.nombre} ${c.apellido}`.toLowerCase().includes(query)
+    );
 
-    try {
-      const res = await fetch('/api/clientes');
-      if (!res.ok) throw new Error('API response not ok');
-      const data = await res.json();
-      if (data && data.error) throw new Error(data.error);
-      
-      let matched: ClienteLlamada | undefined = undefined;
-      if (data) {
-        matched = (data as ClienteLlamada[]).find(c => 
-          (c.cedula && c.cedula.toLowerCase() === query) ||
-          (c.nro_contrato && c.nro_contrato.toLowerCase() === query) ||
-          `${c.nombre} ${c.apellido}`.toLowerCase().includes(query)
-        );
-      }
-
-      if (!matched) {
-        throw new Error('Cliente no encontrado');
-      }
-
-      loadClient(matched);
-
-    } catch (err) {
-      console.warn('CRM API proxy fetch failed or client not found, searching mock data.', err);
-      
-      const mockData: ClienteLlamada[] = [
-        { id: '1', nombre: 'Juan', apellido: 'Pérez', cedula: 'V-12345678', nro_contrato: 'CTR-0001', telefono: '+584121234567', plan_contratado: 'Plan Fibra 100 Mbps', costo_plan: 20.00, ciclo_actual: 30, informado: false, primer_contacto: null, resultado_primer_contacto: null, reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '2', nombre: 'María', apellido: 'Gómez', cedula: 'V-87654321', nro_contrato: 'CTR-0002', telefono: '+584149876543', plan_contratado: 'Plan Fibra 200 Mbps', costo_plan: 30.00, ciclo_actual: 30, informado: true, primer_contacto: '2026-05-29 09:30:00-04', resultado_primer_contacto: 'Se le informó la migración al ciclo 1. Está de acuerdo.', reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '3', nombre: 'Carlos', apellido: 'Rodríguez', cedula: 'V-11112222', nro_contrato: 'CTR-0003', telefono: '+584161112233', plan_contratado: 'Plan Fibra 300 Mbps', costo_plan: 45.00, ciclo_actual: 30, informado: false, primer_contacto: '2026-05-29 14:15:00-04', resultado_primer_contacto: 'Llamada no contestada, buzón de voz.', reagendar_fecha: '2026-06-01T10:00', requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '4', nombre: 'Ana', apellido: 'Martínez', cedula: 'V-33334444', nro_contrato: 'CTR-0004', telefono: '+584244445566', plan_contratado: 'Plan Fibra 500 Mbps', costo_plan: 60.00, ciclo_actual: 1, informado: true, primer_contacto: '2026-05-28 11:00:00-04', resultado_primer_contacto: 'Confirmada recepción de información.', reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '5', nombre: 'Luis', apellido: 'Hernández', cedula: 'V-55556666', nro_contrato: 'CTR-0005', telefono: '+584125556677', plan_contratado: 'Plan Fibra 100 Mbps', costo_plan: 20.00, ciclo_actual: 30, informado: false, primer_contacto: '2026-05-28 15:45:00-04', resultado_primer_contacto: 'El cliente no reconoce el cambio de ciclo y exige soporte técnico por lentitud.', reagendar_fecha: null, requiere_ticket_glpi: true, ticket_glpi_detalles: 'GLPI-98432: Cliente se niega a migración y presenta fallas en router ONT.' },
-        { id: '6', nombre: 'Sofía', apellido: 'Díaz', cedula: 'V-77778888', nro_contrato: 'CTR-0006', telefono: '+584147778899', plan_contratado: 'Plan Fibra 1 Gbps', costo_plan: 100.00, ciclo_actual: 30, informado: false, primer_contacto: null, resultado_primer_contacto: null, reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '7', nombre: 'Pedro', apellido: 'Álvarez', cedula: 'V-99990000', nro_contrato: 'CTR-0007', telefono: '+584128889900', plan_contratado: 'Plan Fibra 200 Mbps', costo_plan: 30.00, ciclo_actual: 1, informado: false, primer_contacto: null, resultado_primer_contacto: null, reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null },
-        { id: '8', nombre: 'Elena', apellido: 'Torres', cedula: 'V-22223333', nro_contrato: 'CTR-0008', telefono: '+584249990011', plan_contratado: 'Plan Fibra 300 Mbps', costo_plan: 45.00, ciclo_actual: 30, informado: true, primer_contacto: '2026-05-30 08:00:00-04', resultado_primer_contacto: 'Informada de la migración del ciclo 30 al 1.', reagendar_fecha: null, requiere_ticket_glpi: false, ticket_glpi_detalles: null }
-      ];
-
-      const savedEdits = localStorage.getItem('clientes_editados');
-      let mergedData = mockData;
-      if (savedEdits) {
-        try {
-          const parsed = JSON.parse(savedEdits) as ClienteLlamada[];
-          mergedData = mockData.map(c => {
-            const saved = parsed.find(p => p.id === c.id);
-            return saved ? { ...c, ...saved } : c;
-          });
-        } catch {}
-      }
-
-      const matchedMock = mergedData.find(c => 
-        (c.cedula && c.cedula.toLowerCase() === query) ||
-        (c.nro_contrato && c.nro_contrato.toLowerCase() === query) ||
-        `${c.nombre} ${c.apellido}`.toLowerCase().includes(query)
-      );
-
-      if (matchedMock) {
-        loadClient(matchedMock);
-      } else {
-        setErrorMsg('Esta cédula o número de contrato no se encuentra registrado en el sistema de migración.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadClient = (clientItem: ClienteLlamada) => {
-    setCliente(clientItem);
-    setContestoLlamada(null); // Reset guard on each new search
-    setResultadoContacto(clientItem.resultado_primer_contacto || '');
-    setReagendarDate(clientItem.reagendar_fecha ? clientItem.reagendar_fecha.slice(0, 16) : '');
-    setInformadoVal(clientItem.informado);
-    setErrorMsg('');
-    setSecondsElapsed(0);
-    setTimerActive(false);
-    setDuracionLlamada(null);
-    setShowSpeechModal(false);
-    setActiveSpeechStage(0);
-    setStageAnswers({});
-    setWhatsappMsg('');
-  };
-
-  const triggerWebhookPortalPago = async (contrato: string) => {
-    if (!contrato) return;
-    try {
-      await fetch('https://n8n.sisprottaurus.com/webhook/notificacion_cliente_portal_pago_ciclo_01', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ CONTRATO: contrato })
-      });
-    } catch (err) {
-      console.error('Failed to trigger portal pago webhook:', err);
-    }
-  };
-
-  const triggerWebhookNoContesto = async (contrato: string) => {
-    if (!contrato) return;
-    try {
-      await fetch('https://n8n.sisprottaurus.com/webhook/Intento-contacto-sin-respuesta', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ CONTRATO: contrato })
-      });
-    } catch (err) {
-      console.error('Failed to trigger no contesto webhook:', err);
-    }
-  };
-
-  const handleNoContesto = async () => {
-    if (!cliente) return;
-    setActionLoading(true);
-
-    const newIntentos = (cliente.intentos_fallidos || 0) + 1;
-    const autoGLPI = newIntentos >= 3;
-
-    const updatedData = {
-      resultado_primer_contacto: autoGLPI 
-        ? 'Llamada no contestada (Generado Ticket GLPI automático por 3 intentos fallidos)' 
-        : 'Llamada no contestada',
-      reagendar_fecha: null,
-      requiere_ticket_glpi: autoGLPI,
-      ticket_glpi_detalles: autoGLPI ? 'Soporte automático: Cliente no contestó tras 3 intentos de llamada.' : null,
-      informado: false,
-      primer_contacto: new Date().toISOString(),
-      intentos_fallidos: newIntentos,
-      duracion_segundos: cliente.duracion_segundos || null
-    };
-
-    try {
-      const res = await fetch('/api/clientes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: cliente.id, cedula: cliente.cedula, ...updatedData })
-      });
-
-      if (!res.ok) throw new Error('API response not ok');
-      const resData = await res.json();
-      if (resData.error) throw new Error(resData.error);
-      
-      await triggerWebhookNoContesto(cliente.id);
-    } catch (err) {
-      console.warn('Save failed, writing to localStorage:', err);
-    } finally {
-      // Mirror locally regardless
-      const savedEdits = localStorage.getItem('clientes_editados');
-      let parsedList: ClienteLlamada[] = [];
-      if (savedEdits) { try { parsedList = JSON.parse(savedEdits); } catch {} }
-      const existingIdx = parsedList.findIndex(p => p.id === cliente.id);
-      const newObj: ClienteLlamada = { ...cliente, ...updatedData };
-      if (existingIdx > -1) { parsedList[existingIdx] = newObj; } else { parsedList.push(newObj); }
-      localStorage.setItem('clientes_editados', JSON.stringify(parsedList));
-
-      setActionLoading(false);
-      setContestoLlamada(false);
-      setTimerActive(false);
-      showNotification('success', 'Registrado: No contestó. Cliente movido al final de la lista.');
-    }
-  };
-
-  const handleSaveDetails = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cliente) return;
-
-    setActionLoading(true);
-    const primerContactoDate = cliente.primer_contacto || new Date().toISOString();
-
-    const updatedData = {
-      resultado_primer_contacto: resultadoContacto.trim() || null,
-      reagendar_fecha: cliente.reagendar_fecha,
-      requiere_ticket_glpi: cliente.requiere_ticket_glpi,
-      ticket_glpi_detalles: cliente.ticket_glpi_detalles,
-      informado: informadoVal,
-      primer_contacto: primerContactoDate,
-      duracion_segundos: duracionLlamada !== null ? duracionLlamada : (cliente.duracion_segundos || null),
-      intentos_fallidos: cliente.intentos_fallidos || 0
-    };
-
-    try {
-      const res = await fetch('/api/clientes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: cliente.id, cedula: cliente.cedula, ...updatedData })
-      });
-
-      if (!res.ok) throw new Error('API response not ok');
-      const resData = await res.json();
-      if (resData.error) throw new Error(resData.error);
-
-      showNotification('success', 'Información guardada con éxito.');
-      setCliente({ ...cliente, ...updatedData });
-      setTimerActive(false);
-    } catch (err) {
-      console.error('Save to local JSON file failed, saving to localStorage:', err);
-      const savedEdits = localStorage.getItem('clientes_editados');
-      let parsedList: ClienteLlamada[] = [];
-      if (savedEdits) { try { parsedList = JSON.parse(savedEdits); } catch {} }
-      const existingIdx = parsedList.findIndex(p => p.id === cliente.id);
-      const newObj: ClienteLlamada = { ...cliente, ...updatedData };
-      if (existingIdx > -1) { parsedList[existingIdx] = newObj; } else { parsedList.push(newObj); }
-      localStorage.setItem('clientes_editados', JSON.stringify(parsedList));
-      setCliente(newObj);
-      showNotification('success', 'Datos guardados localmente.');
-      setTimerActive(false);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleSendWhatsApp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cliente || !whatsappMsg.trim()) return;
-    setWhatsappLoading(true);
-
-    try {
-      // 1. Verify WhatsApp number
-      const checkRes = await fetch('/api/whatsapp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'check', number: cliente.telefono })
-      });
-
-      if (!checkRes.ok) throw new Error('Error al verificar el número en WhatsApp.');
-      const checkData = await checkRes.json();
-
-      if (!checkData.success || !checkData.exists) {
-        showNotification('error', 'El número de teléfono no cuenta con WhatsApp activo.');
-        setWhatsappLoading(false);
-        return;
-      }
-
-      // 2. Send message
-      const sendRes = await fetch('/api/whatsapp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'send', number: cliente.telefono, text: whatsappMsg })
-      });
-
-      if (!sendRes.ok) throw new Error('Error al enviar el mensaje de WhatsApp.');
-      const sendData = await sendRes.json();
-
-      if (sendData.success) {
-        showNotification('success', 'Mensaje de WhatsApp enviado con éxito.');
-        setWhatsappMsg('');
-      } else {
-        showNotification('error', sendData.error || 'No se pudo enviar el mensaje.');
-      }
-    } catch (err: unknown) {
-      console.error(err);
-      const message = err instanceof Error ? err.message : 'Error en la conexión con WhatsApp.';
-      showNotification('error', message);
-    } finally {
-      setWhatsappLoading(false);
+    if (matched) {
+      setCliente(matched);
+    } else {
+      setErrorMsg('Esta cédula o número de contrato no se encuentra registrado en el sistema de migración.');
     }
   };
 
@@ -380,113 +76,8 @@ export default function BuscarPage() {
     return ciclo === 10 ? 15 : ciclo;
   };
 
-  const getSpeechStages = (clienteItem: ClienteLlamada) => {
-    const operName = operatorName || 'el operador';
-    const clientFullName = clienteItem.apellido ? `${clienteItem.nombre} ${clienteItem.apellido}` : clienteItem.nombre;
-    const planName = clienteItem.plan_contratado;
-    const planCost = `$${clienteItem.costo_plan.toFixed(2)}`;
-    const planCostHalf = `$${(clienteItem.costo_plan / 2).toFixed(2)}`;
-    const costBs = clienteItem.deuda_bs ? `Bs ${clienteItem.deuda_bs.toFixed(2)}` : 'Bs —';
-    const clientPhone = clienteItem.telefono;
-    const clientEmail = clienteItem.email || 'su correo registrado';
-
-    return [
-      {
-        id: 1,
-        title: 'Inicio',
-        instructions: 'Si el cliente contesta, lee el siguiente libreto. Si no contesta, usa el botón "No contestó".',
-        text: [
-          `— Buenos días / buenas tardes, ¿tengo el gusto de hablar con el señor / la señora **${clientFullName}**?`,
-          `— Le saluda **${operName}**, de **Sisprot Global Fiber, C.A.**, su proveedor de internet.`,
-          `— Le llamo brevemente para informarle una actualización oficial relacionada con su facturación, tasa de cambio, ciclo de pago y uso del portal, conforme a una disposición de nuestro ente regulador **CONATEL**.`,
-          `— ¿Dispone de unos minutos para explicarle la información?`,
-          `*Si responde NO:* Entendemos perfectamente. ¿Podría indicarnos una hora o momento del día para llamarle nuevamente? Es importante orientarle, ya que este ajuste impacta su ciclo, su fecha de pago y la forma correcta de validar su factura.`
-        ]
-      },
-      {
-        id: 2,
-        title: 'CONATEL y Tasa BCV',
-        instructions: 'Explica el marco oficial y el gran beneficio de la tasa fija mensual.',
-        text: [
-          `— Muchas gracias, señor / señora **${clientFullName}**.`,
-          `— En atención al oficio **DG N.º 1856**, de fecha de **mayo de 2026**, emitido por la **Comisión Nacional de Telecomunicaciones, CONATEL**, Sisprot Global Fiber debe aplicar una adecuación en el proceso de facturación y pago del servicio.`,
-          `— El principal beneficio para usted es que su factura quedará con un **monto fijo en bolívares durante el mes**, calculado con la **tasa oficial BCV del día 01 de cada mes**.`,
-          `— Esto evita variaciones diarias de tasa y le permite planificar su pago con mayor claridad, seguridad y anticipación.`,
-          `— Por ejemplo, para la facturación correspondiente a junio, el monto será calculado con la **tasa BCV del 01 de junio**, y ese será el monto oficial que deberá validar y pagar a través del portal.`,
-          `— Por eso es importante no calcular montos con tasas externas ni referencias distintas al portal, para evitar pagos incorrectos o excedentes.`,
-          `— **¿Me confirma por favor si hasta este punto queda claro que su factura será fijada en bolívares con la tasa BCV del día 01 de cada mes?**`
-        ]
-      },
-      {
-        id: 3,
-        title: 'Migración y Prorrateo',
-        instructions: 'Explica la migración al ciclo 1 y el cobro prorrateado de la transición de junio.',
-        text: [
-          `— Gracias por su atención, señor / señora **${clientFullName}**.`,
-          `— Actualmente usted tiene un plan de **${planName}**, por un costo mensual de **${planCost}**, y pertenece al **ciclo ${getVisualCycle(clienteItem.ciclo_actual || 0)}**.`,
-          `— Bajo la modalidad anterior, su ciclo habitual vencía los días ${getVisualCycle(clienteItem.ciclo_actual || 0)}. Sin embargo, para dar cumplimiento a la adecuación indicada por CONATEL, todos los clientes serán migrados al **nuevo ciclo único 01**.`,
-          `— Para este mes de junio, usted recibirá una notificación de cobro desde el **01 de junio**, con oportunidad de pago hasta el **15 de junio**.`,
-          `— Esta factura no será una mensualidad completa ni un pago doble. Será un **prorrateo correspondiente a los días restantes del mes de junio**, desde el **${getVisualCycle(clienteItem.ciclo_actual || 0)} de junio hasta el 30 de junio**.`,
-          `— Es decir, en junio usted pagará aproximadamente la mitad de su plan, correspondiente únicamente a ese período de transición.`,
-          `— **Ejemplo:** Su plan tiene un costo de **${planCost}**. Para junio pagará **${planCostHalf}**, calculado a la tasa BCV del 01 de junio, dando un total aproximado de **${costBs}**.`,
-          `— A partir del **01 de julio**, su facturación pasará al nuevo **ciclo único 01**. Su factura será generada el día 01, con plazo de pago hasta el día 02, y el día 03 se generará el corte automático en caso de falta de pago.`,
-          `— **¿Me confirma si quedó claro que en junio no tendrá doble facturación, sino un prorrateo, y que desde julio su ciclo será el día 01 de cada mes?**`
-        ]
-      },
-      {
-        id: 4,
-        title: 'Portal de Pago',
-        instructions: 'Explica lo que se visualizará en el portal oficial y los links enviados.',
-        text: [
-          `— Señor / señora **${clientFullName}**, ahora le explico cómo podrá validar esta información en el portal oficial.`,
-          `— En este momento, hemos enviado a su número **${clientPhone}**, vía WhatsApp, y a su correo **${clientEmail}**, un enlace de acceso al portal de pago de **Sisprot Global Fiber**.`,
-          `— En el portal podrá consultar: Factura generada, Fecha de vencimiento, Monto exacto a pagar, Tasa BCV aplicada, Contrato actualizado, Enlaces oficiales de interés.`,
-          `— En el portal verá reflejada:`,
-          `  1. **Factura prorrateada de junio:** por el período del ${getVisualCycle(clienteItem.ciclo_actual || 0)} al 30 de junio (pagar hasta el 15 de junio).`,
-          `  2. **Factura de julio:** por el mes completo de julio (pagar entre el 01 y 02 de julio).`,
-          `— **¿Hasta aquí queda clara la información que verá reflejada en el portal?**`
-        ]
-      },
-      {
-        id: 5,
-        title: 'SLA y Contrato',
-        instructions: 'Detalla el nuevo SLA oficial y la firma digital del contrato actualizado.',
-        text: [
-          `— Ya para finalizar, también queremos informarle que en el portal encontrará la opción **SLA**, que significa **Nivel de Acuerdo de Servicio**, donde podrá consultar los tiempos de respuesta oficiales para soporte técnico y trámites administrativos.`,
-          `— Adicionalmente, su contrato será actualizado y podrá visualizarlo de forma digital dentro del portal. Allí podrá leerlo con calma y firmarlo en línea como constancia de aceptación (debe firmarse desde su teléfono móvil o dispositivo táctil).`,
-          `— Este proceso estará disponible hasta el **30 de julio**, y nuestro equipo le acompañará cada 15 días.`
-        ]
-      },
-      {
-        id: 6,
-        title: 'Suspensión y Corte',
-        instructions: 'Indica la política de no cobrar reconexión, pero exigir el pago completo en caso de suspensión.',
-        text: [
-          `— También es importante aclararle que, si el servicio llega a ser suspendido por falta de pago, **Sisprot Global Fiber no cobra reconexión**.`,
-          `— Sin embargo, para activar nuevamente el servicio, deberá cancelar la mensualidad pendiente completa. El pago no será prorrateado por los días suspendidos, ya que el servicio se factura bajo modalidad mensual.`
-        ]
-      },
-      {
-        id: 7,
-        title: 'Cierre y Asistente',
-        instructions: 'Recapitula los 3 puntos clave, introduce a Susana y despide la llamada.',
-        text: [
-          `— Señor / señora **${clientFullName}**, esperamos que esta información le haya sido útil para comprender el nuevo proceso de facturación, tasa aplicable, fechas de pago y actualización de contrato.`,
-          `— Le recordamos tres puntos principales:`,
-          `  1. Su factura se fijará en bolívares con la **tasa BCV del día 01** de cada mes.`,
-          `  2. En junio pagará solo el **prorrateo del ${getVisualCycle(clienteItem.ciclo_actual || 0)} al 30 de junio**.`,
-          `  3. Desde julio pasará al **ciclo único 01** (pago entre el 01 y 02 de cada mes).`,
-          `— También queremos informarle que nuestra asistente virtual se llama **Susana** y está disponible dentro del portal las **24 horas del día, los 7 días de la semana**.`,
-          `— El número anterior 0412-0261134 ya no se encuentra disponible. Todo soporte se realiza mediante **Susana** para registrar correctamente su ticket numerado y canalizar su solicitud.`,
-          `— **¿Me confirma por favor si la información principal quedó clara?**`,
-          `— Agradecemos mucho su atención, comprensión y confianza en Sisprot Global Fiber. ¡Que tenga un excelente día!`
-        ]
-      }
-    ];
-  };
-
   return (
-    <div className="max-w-3xl mx-auto space-y-8 py-6">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
       
       {/* Back button when client is loaded */}
       {cliente && (
@@ -997,7 +588,6 @@ export default function BuscarPage() {
                   {/* Speech Script Box */}
                   <div className="bg-secondary/20 border border-border p-5 rounded-2xl space-y-4 font-medium text-sm leading-relaxed text-foreground select-text">
                     {currentStg.text.map((para, pIdx) => {
-                      // Simple markdown parser helper for bold tags
                       const parts = para.split('**');
                       return (
                         <p key={pIdx}>
@@ -1063,51 +653,7 @@ export default function BuscarPage() {
                               />
                               <button
                                 type="button"
-                                onClick={async () => {
-                                  if (!cliente) return;
-                                  if (!reagendarDate) {
-                                    showNotification('error', 'Por favor selecciona fecha y hora.');
-                                    return;
-                                  }
-                                  setActionLoading(true);
-                                  const updatedData = {
-                                    resultado_primer_contacto: 'Reagendado desde speech (no disponible)',
-                                    reagendar_fecha: new Date(reagendarDate).toISOString(),
-                                    requiere_ticket_glpi: false,
-                                    ticket_glpi_detalles: null,
-                                    informado: false,
-                                    primer_contacto: cliente.primer_contacto || new Date().toISOString(),
-                                    intentos_fallidos: cliente.intentos_fallidos || 0,
-                                    duracion_segundos: cliente.duracion_segundos || null
-                                  };
-                                  try {
-                                    const res = await fetch('/api/clientes', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ id: cliente.id, cedula: cliente.cedula, ...updatedData })
-                                    });
-                                    if (!res.ok) throw new Error('API error');
-                                    showNotification('success', 'Llamada reagendada con éxito.');
-                                  } catch (err) {
-                                    console.error(err);
-                                    showNotification('success', 'Reagenda guardada localmente.');
-                                  } finally {
-                                    const savedEdits = localStorage.getItem('clientes_editados');
-                                    let parsedList: ClienteLlamada[] = [];
-                                    if (savedEdits) { try { parsedList = JSON.parse(savedEdits); } catch {} }
-                                    const existingIdx = parsedList.findIndex(p => p.id === cliente.id);
-                                    const newObj: ClienteLlamada = { ...cliente, ...updatedData };
-                                    if (existingIdx > -1) { parsedList[existingIdx] = newObj; } else { parsedList.push(newObj); }
-                                    localStorage.setItem('clientes_editados', JSON.stringify(parsedList));
-                                    
-                                    setCliente(newObj);
-                                    setResultadoContacto(newObj.resultado_primer_contacto || '');
-                                    setReagendarDate(newObj.reagendar_fecha ? newObj.reagendar_fecha.slice(0, 16) : '');
-                                    
-                                    setShowSpeechModal(false);
-                                    setActionLoading(false);
-                                  }
-                                }}
+                                onClick={() => handleReagendarSpeech(reagendarDate)}
                                 className="bg-[#60c0ea] hover:bg-[#4eaad4] text-[#002851] font-bold px-4 py-2 rounded-xl text-xs uppercase transition-all flex-shrink-0"
                               >
                                 Reagendar
@@ -1142,51 +688,7 @@ export default function BuscarPage() {
                               />
                               <button
                                 type="button"
-                                onClick={async () => {
-                                  if (!cliente) return;
-                                  if (!reagendarDate) {
-                                    showNotification('error', 'Por favor selecciona fecha y hora para la visita.');
-                                    return;
-                                  }
-                                  setActionLoading(true);
-                                  const updatedData = {
-                                    resultado_primer_contacto: `Visita a la oficina programada (Etapa ${activeSpeechStage + 1})`,
-                                    reagendar_fecha: new Date(reagendarDate).toISOString(),
-                                    requiere_ticket_glpi: false,
-                                    ticket_glpi_detalles: null,
-                                    informado: false,
-                                    primer_contacto: cliente.primer_contacto || new Date().toISOString(),
-                                    intentos_fallidos: cliente.intentos_fallidos || 0,
-                                    duracion_segundos: cliente.duracion_segundos || null
-                                  };
-                                  try {
-                                    const res = await fetch('/api/clientes', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ id: cliente.id, cedula: cliente.cedula, ...updatedData })
-                                    });
-                                    if (!res.ok) throw new Error('API error');
-                                    showNotification('success', 'Visita a la oficina agendada con éxito.');
-                                  } catch (err) {
-                                    console.error(err);
-                                    showNotification('success', 'Visita guardada localmente.');
-                                  } finally {
-                                    const savedEdits = localStorage.getItem('clientes_editados');
-                                    let parsedList: ClienteLlamada[] = [];
-                                    if (savedEdits) { try { parsedList = JSON.parse(savedEdits); } catch {} }
-                                    const existingIdx = parsedList.findIndex(p => p.id === cliente.id);
-                                    const newObj: ClienteLlamada = { ...cliente, ...updatedData };
-                                    if (existingIdx > -1) { parsedList[existingIdx] = newObj; } else { parsedList.push(newObj); }
-                                    localStorage.setItem('clientes_editados', JSON.stringify(parsedList));
-                                    
-                                    setCliente(newObj);
-                                    setResultadoContacto(newObj.resultado_primer_contacto || '');
-                                    setReagendarDate(newObj.reagendar_fecha ? newObj.reagendar_fecha.slice(0, 16) : '');
-                                    
-                                    setShowSpeechModal(false);
-                                    setActionLoading(false);
-                                  }
-                                }}
+                                onClick={() => handleAgendarVisitaSpeech(activeSpeechStage, reagendarDate)}
                                 className="bg-[#60c0ea] hover:bg-[#4eaad4] text-[#002851] font-bold px-4 py-2 rounded-xl text-xs uppercase transition-all flex-shrink-0"
                               >
                                 Agendar Visita
@@ -1196,7 +698,7 @@ export default function BuscarPage() {
                         </div>
                       )}
 
-                      {/* Handling for Stage 7 (Index 6) - "No" Answer (No scheduling, only reminder to re-explain) */}
+                      {/* Handling for Stage 7 (Index 6) - "No" Answer */}
                       {activeSpeechStage === 6 && stageAnswers[6] === false && (
                         <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl space-y-3 text-left animate-slide-up mt-3 animate-pulse">
                           <span className="text-[10px] font-bold text-red-400 uppercase block">El cliente aún tiene dudas</span>
@@ -1240,48 +742,7 @@ export default function BuscarPage() {
                 ) : (
                   <button
                     disabled={stageAnswers[6] !== true}
-                    onClick={async () => {
-                      if (!cliente) return;
-                      setActionLoading(true);
-                      const updatedData = {
-                        resultado_primer_contacto: 'Informado con éxito desde speech completo',
-                        reagendar_fecha: null,
-                        requiere_ticket_glpi: false,
-                        ticket_glpi_detalles: null,
-                        informado: true,
-                        primer_contacto: cliente.primer_contacto || new Date().toISOString(),
-                        intentos_fallidos: cliente.intentos_fallidos || 0,
-                        duracion_segundos: duracionLlamada !== null ? duracionLlamada : (cliente.duracion_segundos || null)
-                      };
-                      try {
-                        const res = await fetch('/api/clientes', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ id: cliente.id, cedula: cliente.cedula, ...updatedData })
-                        });
-                        if (!res.ok) throw new Error('API error');
-                        await triggerWebhookPortalPago(cliente.id);
-                        showNotification('success', 'Cliente informado con éxito.');
-                      } catch (err) {
-                        console.error(err);
-                        showNotification('success', 'Registro guardado localmente.');
-                      } finally {
-                        const savedEdits = localStorage.getItem('clientes_editados');
-                        let parsedList: ClienteLlamada[] = [];
-                        if (savedEdits) { try { parsedList = JSON.parse(savedEdits); } catch {} }
-                        const existingIdx = parsedList.findIndex(p => p.id === cliente.id);
-                        const newObj: ClienteLlamada = { ...cliente, ...updatedData };
-                        if (existingIdx > -1) { parsedList[existingIdx] = newObj; } else { parsedList.push(newObj); }
-                        localStorage.setItem('clientes_editados', JSON.stringify(parsedList));
-                        
-                        setCliente(newObj);
-                        setResultadoContacto(newObj.resultado_primer_contacto || '');
-                        setReagendarDate(newObj.reagendar_fecha ? newObj.reagendar_fecha.slice(0, 16) : '');
-                        
-                        setShowSpeechModal(false);
-                        setActionLoading(false);
-                      }
-                    }}
+                    onClick={handleFinalizarSpeech}
                     className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Finalizar y Registrar Éxito

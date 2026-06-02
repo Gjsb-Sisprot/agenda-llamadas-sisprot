@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+
 import { setSessionActive } from '@/lib/utils';
 import { 
   BarChart3, Users, LogOut, User, PhoneCall, ClipboardCheck, Sun, Moon, CalendarDays
@@ -42,7 +42,7 @@ export default function Navigation() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (e) {
       console.error(e);
     }

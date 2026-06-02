@@ -66,19 +66,7 @@ export async function GET() {
       "Thais Bejas"
     ];
 
-    const N = allClientes.length;
-    const K = Math.ceil(N / 14);
-
-    const mappedClientes = allClientes.map((cliente, index) => {
-      let operadorIndex = Math.floor(index / K);
-      if (operadorIndex >= 13) {
-        operadorIndex = 13;
-      }
-      return {
-        ...cliente,
-        operador: OPERADORES[operadorIndex]
-      };
-    });
+    const mappedClientes = allClientes as unknown as (ClienteLlamadaRow & { operador: string })[];
 
     // 1. General Metrics
     const totalAgenda = mappedClientes.length;

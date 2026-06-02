@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { callLogSchema } from '@/lib/validations';
 
 interface CallLog {
   id: string;
@@ -16,14 +17,6 @@ interface CallLog {
   intentos_fallidos?: number | null;
 }
 
-interface BankAssociated {
-  id?: number;
-  nro_cta?: string;
-  rlf?: string;
-  bank_name?: string;
-  bank_code?: string;
-  identification?: string;
-}
 
 
 // Helper to save call log to Supabase
@@ -95,45 +88,14 @@ export async function GET() {
       }
     }
 
-    // Sort by ID to ensure stable assignment
+    // Sort by ID
     allClientes.sort((a, b) => {
       const idA = String(a.id || '');
       const idB = String(b.id || '');
       return idA.localeCompare(idB);
     });
 
-    const OPERADORES = [
-      "Georgina Baladi",
-      "Khaloa Serrano",
-      "Derwing Acevedo",
-      "Luis Hidalgo",
-      "Sandy Rodriguez",
-      "Yhosselyn Perez",
-      "Yetzareth Bravo",
-      "Paola Guanipa",
-      "Guillermo Sanchez",
-      "Levi Oliveros",
-      "Barbara Rodriguez",
-      "Milagros Teran",
-      "Jannerys Pirela",
-      "Thais Bejas" // Thais Bejas is 14th (index 13), so she gets the remainder
-    ];
-
-    const N = allClientes.length;
-    const K = Math.ceil(N / 14);
-
-    const mappedClientes = allClientes.map((cliente, index) => {
-      let operadorIndex = Math.floor(index / K);
-      if (operadorIndex >= 13) {
-        operadorIndex = 13; // Thais Bejas gets the rest
-      }
-      return {
-        ...cliente,
-        operador: OPERADORES[operadorIndex]
-      };
-    });
-
-    return NextResponse.json(mappedClientes);
+    return NextResponse.json(allClientes);
   } catch (error: unknown) {
     console.error('Error fetching clients in API Route:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -144,24 +106,30 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { id, informado, primer_contacto, resultado_primer_contacto, reagendar_fecha, visita_oficina_fecha, requiere_ticket_glpi, ticket_glpi_detalles, cedula, duracion_segundos, intentos_fallidos } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
+    
+    // Strict validation using Zod
+    const result = callLogSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json({ 
+        error: 'Validation failed', 
+        details: result.error.flatten().fieldErrors 
+      }, { status: 400 });
     }
 
+    const validatedData = result.data;
+
     const logToSave: CallLog = {
-      id: id.toString(),
-      cedula: cedula || null,
-      informado: informado ?? false,
-      primer_contacto: primer_contacto || new Date().toISOString(),
-      resultado_primer_contacto: resultado_primer_contacto || null,
-      reagendar_fecha: reagendar_fecha || null,
-      visita_oficina_fecha: visita_oficina_fecha || null,
-      requiere_ticket_glpi: requiere_ticket_glpi ?? false,
-      ticket_glpi_detalles: requiere_ticket_glpi ? ticket_glpi_detalles : null,
-      duracion_segundos: duracion_segundos || null,
-      intentos_fallidos: intentos_fallidos || 0
+      id: validatedData.id,
+      cedula: validatedData.cedula || null,
+      informado: validatedData.informado,
+      primer_contacto: validatedData.primer_contacto || new Date().toISOString(),
+      resultado_primer_contacto: validatedData.resultado_primer_contacto || null,
+      reagendar_fecha: validatedData.reagendar_fecha || null,
+      visita_oficina_fecha: validatedData.visita_oficina_fecha || null,
+      requiere_ticket_glpi: validatedData.requiere_ticket_glpi,
+      ticket_glpi_detalles: validatedData.requiere_ticket_glpi ? validatedData.ticket_glpi_detalles : null,
+      duracion_segundos: validatedData.duracion_segundos || null,
+      intentos_fallidos: validatedData.intentos_fallidos || 0
     };
 
     const savedInSupabase = await saveCallLog(logToSave);

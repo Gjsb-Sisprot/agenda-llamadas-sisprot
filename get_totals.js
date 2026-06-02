@@ -1,7 +1,8 @@
+/* eslint-disable */
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://djjuvkrhhgpbnokrafjw.supabase.co';
-const supabaseKey = 'sb_publishable_fed-1yCE4ZEo5W10Mrcypw_PD7Z770A';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {

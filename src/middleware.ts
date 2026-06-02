@@ -1,24 +1,55 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { decryptSession } from './lib/session';
 
-export function middleware(request: NextRequest) {
-  const sessionActive = request.cookies.get('session_active')?.value;
+export async function middleware(request: NextRequest) {
+  // 0. Enforce HTTPS in production environments
+  if (
+    process.env.NODE_ENV === 'production' &&
+    request.headers.get('x-forwarded-proto') !== 'https' &&
+    !request.headers.get('host')?.includes('localhost')
+  ) {
+    return NextResponse.redirect(
+      `https://${request.headers.get('host')}${request.nextUrl.pathname}`,
+      301
+    );
+  }
+
+  const sessionToken = request.cookies.get('session_token')?.value;
   const { pathname } = request.nextUrl;
 
-  // Permite solicitudes a login, archivos estáticos internos, favicons y APIs sin verificar sesión
+  // 1. Exclude public assets, static files and the login API/page from checks
   if (
     pathname.startsWith('/login') ||
+    pathname.startsWith('/api/auth/login') ||
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
     pathname === '/favicon.ico'
   ) {
     return NextResponse.next();
   }
 
-  // Si no tiene la cookie activa, redirige a /login
-  if (!sessionActive || sessionActive !== 'true') {
+  // 2. Verify Session
+  let session = null;
+  if (sessionToken) {
+    session = await decryptSession(sessionToken);
+  }
+
+  // 3. Handle unauthorized access
+  if (!session) {
+    // If it's an API route, return 401 JSON to secure backend
+    if (pathname.startsWith('/api')) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Inicie sesión para acceder a este recurso.' },
+        { status: 401 }
+      );
+    }
+
+    // Otherwise, redirect to login page
     const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(loginUrl);
+    // Clear cookie to ensure no stale invalid cookies remain
+    response.cookies.delete('session_token');
+    return response;
   }
 
   return NextResponse.next();
@@ -26,7 +57,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Ejecutar middleware en todas las rutas excepto recursos estáticos habituales
+    // Execute middleware on all routes except static assets
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
