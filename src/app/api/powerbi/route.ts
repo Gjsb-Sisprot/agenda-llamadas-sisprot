@@ -150,7 +150,7 @@ export async function GET(request: Request) {
         };
       });
 
-    let responseData: any;
+    let responseData: unknown;
     if (table === 'operadores') {
       responseData = operadoresTable;
     } else if (table === 'clientes') {
