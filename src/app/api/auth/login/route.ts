@@ -3,8 +3,31 @@ import { signSession } from '@/lib/session';
 import { loginSchema } from '@/lib/validations';
 import { supabase } from '@/lib/supabase';
 
+// Rate limit simple en memoria (por IP)
+const rateLimitMap = new Map<string, { count: number; lastRequest: number }>();
+const LIMIT_ATTEMPTS = 5;
+const WINDOW_MS = 60 * 1000; // 1 minuto
+
 export async function POST(request: Request) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || '127.0.0.1';
+    const now = Date.now();
+    const rateLimit = rateLimitMap.get(ip);
+
+    if (rateLimit) {
+      if (now - rateLimit.lastRequest < WINDOW_MS) {
+        if (rateLimit.count >= LIMIT_ATTEMPTS) {
+          return NextResponse.json({
+            success: false,
+            error: 'Demasiados intentos fallidos. Inténtalo de nuevo en un minuto.'
+          }, { status: 429 });
+        }
+      } else {
+        // Resetear ventana
+        rateLimit.count = 0;
+      }
+    }
+
     const body = await request.json();
     
     // Strict payload validation using Zod
@@ -26,11 +49,20 @@ export async function POST(request: Request) {
     });
 
     if (error || !data.user) {
+      const current = rateLimitMap.get(ip) || { count: 0, lastRequest: now };
+      current.count++;
+      current.lastRequest = now;
+      rateLimitMap.set(ip, current);
+
       return NextResponse.json({ 
         success: false, 
         error: error?.message || 'Credenciales inválidas o correo no registrado.' 
       }, { status: 401 });
     }
+
+    // Login exitoso -> resetear intentos
+    rateLimitMap.delete(ip);
+
 
     const userEmail = data.user.email || email;
     
