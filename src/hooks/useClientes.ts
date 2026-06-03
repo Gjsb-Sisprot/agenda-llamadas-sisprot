@@ -96,6 +96,11 @@ export function useClientes() {
   const [showSpeechModal, setShowSpeechModal] = useState(false);
   const [activeSpeechStage, setActiveSpeechStage] = useState(0);
 
+  // Resumen modal
+  const [showResumenModal, setShowResumenModal] = useState(false);
+  const [resumenData, setResumenData] = useState<{ clienteNombre: string; duracion: number | null; notas: string } | null>(null);
+
+
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (timerActive) {
@@ -213,6 +218,16 @@ export function useClientes() {
       setClientes(updatedList);
       setSelectedCliente({ ...selectedCliente, ...updatedData });
       setTimerActive(false);
+
+      if (informadoVal) {
+        setResumenData({
+          clienteNombre: `${selectedCliente.nombre} ${selectedCliente.apellido || ''}`.trim(),
+          duracion: updatedData.duracion_segundos,
+          notas: updatedData.resultado_primer_contacto || 'Sin notas adicionales.'
+        });
+        setShowResumenModal(true);
+      }
+
     } catch (err) {
       console.error('Save failed:', err);
       showNotification('error', 'Error al guardar la información en Supabase.');
@@ -590,6 +605,14 @@ export function useClientes() {
       setClientes(updatedList);
       setSelectedCliente({ ...selectedCliente, ...updatedData });
       setShowSpeechModal(false);
+
+      setResumenData({
+        clienteNombre: `${selectedCliente.nombre} ${selectedCliente.apellido || ''}`.trim(),
+        duracion: updatedData.duracion_segundos,
+        notas: updatedData.resultado_primer_contacto || 'Informado con éxito desde speech completo'
+      });
+      setShowResumenModal(true);
+
     } catch (err) {
       console.error(err);
       showNotification('error', 'Error al guardar la información en Supabase.');
@@ -665,5 +688,10 @@ export function useClientes() {
     handleReagendarSpeech,
     handleAgendarVisitaSpeech,
     handleFinalizarSpeech,
+    showResumenModal,
+    setShowResumenModal,
+    resumenData,
+    setResumenData,
+
   };
 }

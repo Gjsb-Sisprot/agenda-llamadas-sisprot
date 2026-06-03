@@ -43,6 +43,8 @@ export default function DashboardPage() {
   const [filtroPlan, setFiltroPlan] = useState<string>('todos');
   const [filtroPrecio, setFiltroPrecio] = useState<string>('todos');
   const [filtroCiclo, setFiltroCiclo] = useState<string>('todos');
+  const [filtroContacto, setFiltroContacto] = useState<'todos' | 'contactados' | 'no-contactados'>('todos');
+
 
   const fetchClientes = useCallback(async () => {
     setLoading(true);
@@ -129,6 +131,13 @@ export default function DashboardPage() {
   const totalFiltrados = clientesFiltrados.length;
   const contactadosFiltrados = clientesFiltrados.filter(c => c.informado).length;
   const noContactadosFiltrados = totalFiltrados - contactadosFiltrados;
+
+  const clientesFinalesListados = clientesFiltrados.filter(c => {
+    if (filtroContacto === 'contactados') return c.informado === true;
+    if (filtroContacto === 'no-contactados') return c.informado === false;
+    return true;
+  });
+
 
   // Meta Diaria (30 llamadas/contactos por día)
   const metaDiaria = 30;
@@ -334,7 +343,9 @@ export default function DashboardPage() {
               setFiltroPlan('todos');
               setFiltroPrecio('todos');
               setFiltroCiclo('todos');
+              setFiltroContacto('todos');
             }}
+
             className="ml-auto text-xs text-[#60c0ea] hover:text-foreground flex items-center gap-1 font-semibold"
           >
             <RefreshCw className="h-3 w-3" /> Limpiar Filtros
@@ -394,19 +405,40 @@ export default function DashboardPage() {
         {/* Relación de Contactados Filtrados */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-xl space-y-4">
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-            <PhoneCall className="h-4.5 w-4.5 text-[#60c0ea]" /> Distribución de Contacto
+            <PhoneCall className="h-4.5 w-4.5 text-[#60c0ea]" /> Distribución de Contacto (Haz clic en un segmento para listar)
           </h3>
           
           <div className="grid grid-cols-3 gap-4 text-center py-2">
-            <div className="bg-secondary/20 p-4 rounded-xl border border-border">
+            <div 
+              onClick={() => setFiltroContacto('todos')}
+              className={`p-4 rounded-xl border transition-all cursor-pointer select-none ${
+                filtroContacto === 'todos'
+                  ? 'bg-[#004e74]/20 border-[#60c0ea] shadow-md shadow-[#004e74]/30 scale-[1.02]'
+                  : 'bg-secondary/20 border-border hover:bg-secondary/40'
+              }`}
+            >
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Filtrados</span>
               <span className="block text-2xl font-black text-foreground mt-1">{totalFiltrados}</span>
             </div>
-            <div className="bg-secondary/20 p-4 rounded-xl border border-border">
+            <div 
+              onClick={() => setFiltroContacto('contactados')}
+              className={`p-4 rounded-xl border transition-all cursor-pointer select-none ${
+                filtroContacto === 'contactados'
+                  ? 'bg-emerald-500/10 border-emerald-500/50 shadow-md shadow-emerald-500/10 scale-[1.02]'
+                  : 'bg-secondary/20 border-border hover:bg-secondary/40'
+              }`}
+            >
               <span className="text-[10px] font-bold text-emerald-400 uppercase">Contactados</span>
               <span className="block text-2xl font-black text-emerald-400 mt-1">{contactadosFiltrados}</span>
             </div>
-            <div className="bg-secondary/20 p-4 rounded-xl border border-border">
+            <div 
+              onClick={() => setFiltroContacto('no-contactados')}
+              className={`p-4 rounded-xl border transition-all cursor-pointer select-none ${
+                filtroContacto === 'no-contactados'
+                  ? 'bg-red-500/10 border-red-500/50 shadow-md shadow-red-500/10 scale-[1.02]'
+                  : 'bg-secondary/20 border-border hover:bg-secondary/40'
+              }`}
+            >
               <span className="text-[10px] font-bold text-red-400 uppercase">No Contact.</span>
               <span className="block text-2xl font-black text-red-400 mt-1">{noContactadosFiltrados}</span>
             </div>
@@ -426,7 +458,55 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Listado de Clientes del Segmento Seleccionado */}
+        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-xl space-y-0 animate-fade-in">
+          <div className="p-4 bg-secondary/50 border-b border-border flex items-center justify-between">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+              Clientes del Segmento: <span className="text-[#60c0ea]">{filtroContacto === 'todos' ? 'TODOS' : filtroContacto === 'contactados' ? 'CONTACTADOS' : 'NO CONTACTADOS'}</span> ({clientesFinalesListados.length.toLocaleString()})
+            </h3>
+            <span className="text-[10px] bg-[#004e74] text-[#60c0ea] font-bold px-2 py-0.5 rounded-full uppercase">
+              Ciclo 15
+            </span>
+          </div>
+
+          {clientesFinalesListados.length === 0 ? (
+            <div className="p-8 text-center text-gray-500 italic text-xs">
+              No hay clientes en este segmento con los filtros dinámicos activos.
+            </div>
+          ) : (
+            <div className="overflow-x-auto max-h-96">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground text-[10px] font-semibold uppercase tracking-wider bg-secondary/10">
+                    <th className="py-2.5 px-4">Cliente</th>
+                    <th className="py-2.5 px-4">Plan contratado / Costo</th>
+                    <th className="py-2.5 px-4">Teléfono</th>
+                    <th className="py-2.5 px-4 text-center">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clientesFinalesListados.map((c) => (
+                    <tr key={c.id} className="border-b border-border/50 hover:bg-secondary/10 transition-colors text-xs">
+                      <td className="py-2.5 px-4 font-bold text-foreground uppercase">{c.nombre} {c.apellido}</td>
+                      <td className="py-2.5 px-4 text-muted-foreground uppercase">{c.plan_contratado} · <span className="text-emerald-400 font-bold">${c.costo_plan.toFixed(2)}</span></td>
+                      <td className="py-2.5 px-4 font-mono">{c.telefono}</td>
+                      <td className="py-2.5 px-4 text-center">
+                        {c.informado ? (
+                          <span className="inline-flex items-center gap-0.5 text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded text-[9px] uppercase font-semibold">Contactado</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-red-400 bg-red-500/10 px-2.5 py-0.5 rounded text-[9px] uppercase font-semibold">No Contactado</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
       </div>
+
 
       {/* Sección Informativa Inferior */}
       <div className="bg-card/60 border border-border p-5 rounded-2xl">

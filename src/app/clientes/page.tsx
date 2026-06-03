@@ -61,7 +61,11 @@ export default function ClientesPage() {
     handleReagendarSpeech,
     handleAgendarVisitaSpeech,
     handleFinalizarSpeech,
+    showResumenModal,
+    setShowResumenModal,
+    resumenData,
   } = useClientes();
+
 
   const totalItems = clientesFiltrados.length;
 
@@ -874,6 +878,54 @@ export default function ClientesPage() {
           </div>
         </div>
       )}
+      {/* Modal de Resumen de Llamada Exitosa */}
+      {showResumenModal && resumenData && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-md animate-slide-up overflow-hidden">
+            {/* Success Header */}
+            <div className="p-6 text-center bg-gradient-to-br from-[#0c2e47] to-[#0a1f3c] border-b border-border flex flex-col items-center justify-center gap-3">
+              <div className="h-14 w-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-inner">
+                <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-wider">Cliente Informado Exitosamente</h3>
+                <p className="text-[10px] text-emerald-400 font-bold uppercase mt-0.5">Gestión completada y guardada</p>
+              </div>
+            </div>
+
+            {/* Summary Details */}
+            <div className="p-6 space-y-4 text-xs">
+              <div className="bg-secondary/40 border border-border rounded-2xl p-4 space-y-3">
+                <div className="flex justify-between items-center border-b border-border/50 pb-2">
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase">Cliente</span>
+                  <span className="font-extrabold text-foreground uppercase">{resumenData.clienteNombre}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-border/50 pb-2">
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase">Duración</span>
+                  <span className="font-mono font-bold text-foreground">
+                    {resumenData.duracion ? formatTime(resumenData.duracion) : '00:00'}
+                  </span>
+                </div>
+                <div className="space-y-1 pt-1">
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase block">Bitácora / Notas</span>
+                  <p className="text-foreground/90 font-medium leading-relaxed italic bg-background p-2.5 rounded-lg border border-border/60">
+                    "{resumenData.notas}"
+                  </p>
+                </div>
+              </div>
+
+              {/* Confirm Button */}
+              <button
+                onClick={() => setShowResumenModal(false)}
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-1.5"
+              >
+                Aceptar y Continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
+
   );
 }
