@@ -73,8 +73,9 @@ export default function ClientesPage() {
 
   const handleSiguienteContactado = () => {
     setShowResumenModal(false);
-    if (clientesFiltrados.length > 0) {
-      setSelectedCliente(clientesFiltrados[0]);
+    const nextPending = clientesFiltrados.find(c => !c.informado);
+    if (nextPending) {
+      setSelectedCliente(nextPending);
     } else {
       setSelectedCliente(null);
     }
@@ -562,14 +563,14 @@ export default function ClientesPage() {
                           {/* Form */}
                           <form onSubmit={handleSaveDetails} className="space-y-3">
 
-                            {/* Informado toggle */}
+                            {/* Informado toggle (read-only) */}
                             <button
                               type="button"
-                              onClick={() => setInformadoVal(!informadoVal)}
-                              className={`w-full flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${
+                              disabled={true}
+                              className={`w-full flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-not-allowed ${
                                 informadoVal
                                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold'
-                                  : 'bg-secondary/40 border-border text-gray-400 hover:border-gray-500'
+                                  : 'bg-secondary/40 border-border text-gray-400'
                               }`}
                             >
                               <CheckCircle2 className={`h-5 w-5 mb-1 ${informadoVal ? 'text-emerald-400' : 'text-gray-500'}`} />

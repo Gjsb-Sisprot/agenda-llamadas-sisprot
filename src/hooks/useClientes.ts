@@ -465,7 +465,6 @@ export function useClientes() {
     : clientes;
 
   const clientesFiltrados = myClientes.filter((c) => {
-    if (c.informado) return false;
     if (c.resultado_primer_contacto === 'Agendado para visita informativa') return false;
 
     if (searchQuery.trim()) {
