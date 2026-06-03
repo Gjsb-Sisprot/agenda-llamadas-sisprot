@@ -119,7 +119,38 @@ export async function GET(request: Request) {
       return idA.localeCompare(idB);
     });
 
-    const responseBodyString = JSON.stringify(allClientes);
+    const OPERADORES = [
+      "Georgina Baladi",
+      "Khaloa Serrano",
+      "Derwing Acevedo",
+      "Luis Hidalgo",
+      "Sandy Rodriguez",
+      "Yhosselyn Perez",
+      "Yetzareth Bravo",
+      "Paola Guanipa",
+      "Guillermo Sanchez",
+      "Levi Oliveros",
+      "Barbara Rodriguez",
+      "Milagros Teran",
+      "Jannerys Pirela",
+      "Thais Bejas"
+    ];
+
+    const N = allClientes.length;
+    const K = Math.ceil(N / 14);
+
+    const mappedClientes = allClientes.map((cliente, index) => {
+      let operadorIndex = Math.floor(index / K);
+      if (operadorIndex >= 13) {
+        operadorIndex = 13;
+      }
+      return {
+        ...cliente,
+        operador: OPERADORES[operadorIndex]
+      };
+    });
+
+    const responseBodyString = JSON.stringify(mappedClientes);
     const etag = crypto.createHash('md5').update(responseBodyString).digest('hex');
 
     const ifNoneMatch = request.headers.get('if-none-match');

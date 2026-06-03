@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET as getPowerBI } from './powerbi/route';
-import { GET as getClientes, POST as postClientes } from './clientes/route';
+import { GET as getClientes } from './clientes/route';
 import { signSession } from '@/lib/session';
 
 // Mock Supabase
