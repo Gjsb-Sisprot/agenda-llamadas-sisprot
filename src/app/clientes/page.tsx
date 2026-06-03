@@ -3,8 +3,10 @@
 import { useClientes } from '@/hooks/useClientes';
 import {
   Users, Search, Check, X, Phone, MessageSquare, AlertCircle, Save, CheckCircle2,
-  ChevronRight, CalendarDays, Loader2, Mail, MapPin, PhoneOff, Building2, User, Hash, Clock
+  ChevronRight, CalendarDays, Loader2, Mail, MapPin, PhoneOff, Building2, User, Hash, Clock,
+  ChevronsLeft, ChevronsRight
 } from 'lucide-react';
+
 
 export default function ClientesPage() {
   const {
@@ -68,6 +70,15 @@ export default function ClientesPage() {
 
 
   const totalItems = clientesFiltrados.length;
+
+  const handleSiguienteContactado = () => {
+    setShowResumenModal(false);
+    if (clientesFiltrados.length > 0) {
+      setSelectedCliente(clientesFiltrados[0]);
+    } else {
+      setSelectedCliente(null);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-background text-foreground p-4 md:p-8 animate-fade-in">
@@ -142,10 +153,10 @@ export default function ClientesPage() {
             <p className="text-gray-400 text-sm font-medium">Cargando directorio de clientes desde el CRM...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 gap-6">
 
             {/* Left Column: List & Filters */}
-            <div className="lg:col-span-8 space-y-4">
+            <div className="space-y-4">
 
               {/* Search + Filters */}
               <div className="bg-card border border-border rounded-2xl p-5 shadow-xl space-y-4">
@@ -275,6 +286,15 @@ export default function ClientesPage() {
                     </span>
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1.5 rounded-lg border border-border bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-foreground font-bold transition-all flex items-center gap-1"
+                        title="Ir al inicio"
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                        <span>Inicio</span>
+                      </button>
+                      <button
                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                         disabled={currentPage === 1}
                         className="px-3 py-1.5 rounded-lg border border-border bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-foreground font-bold transition-all"
@@ -291,316 +311,311 @@ export default function ClientesPage() {
                       >
                         Siguiente
                       </button>
+                      <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1.5 rounded-lg border border-border bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-foreground font-bold transition-all flex items-center gap-1"
+                        title="Ir al final"
+                      >
+                        <span>Final</span>
+                        <ChevronsRight className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Right Column: Client Panel */}
-            <div className="lg:col-span-4">
-              {!selectedCliente ? (
-                <div className="bg-card border border-border rounded-2xl p-8 text-center space-y-3 shadow-xl h-full flex flex-col items-center justify-center">
-                  <div className="h-14 w-14 rounded-2xl bg-secondary/40 flex items-center justify-center">
-                    <Users className="h-7 w-7 text-muted-foreground" />
-                  </div>
-                  <p className="text-muted-foreground text-sm font-medium">Selecciona un cliente<br />de la lista para gestionar la llamada.</p>
-                </div>
-              ) : (
-                <div className="bg-card border border-border rounded-2xl shadow-xl space-y-0 animate-fade-in overflow-hidden">
-
+            {/* Client Panel Modal overlay */}
+            {selectedCliente && (
+              <div
+                className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
+                onClick={() => setSelectedCliente(null)}
+              >
+                <div
+                  className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-xl animate-slide-up flex flex-col max-h-[90vh] overflow-hidden text-left"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {/* Panel Header */}
-                  <div className="p-5 border-b border-border bg-gradient-to-br from-[#0a1628] to-[#0d1f3c]">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[10px] font-bold text-[#60c0ea] uppercase tracking-wider block">Panel del Cliente</span>
-                        <h2 className="text-lg font-extrabold text-white uppercase mt-0.5 leading-tight truncate">
-                          {selectedCliente.nombre} {selectedCliente.apellido}
-                        </h2>
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {selectedCliente.estado && (
-                            <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase">{selectedCliente.estado}</span>
-                          )}
-                          {selectedCliente.retaining_client && (
-                            <span className="text-[9px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase">Retenido</span>
-                          )}
-                          {selectedCliente.migrate && (
-                            <span className="text-[9px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase">Migrar</span>
-                          )}
-                          {selectedCliente.contract_tag && (
-                            <span className="text-[9px] bg-[#004e74]/40 border border-[#60c0ea]/20 text-[#60c0ea] px-2 py-0.5 rounded-full font-bold uppercase">{selectedCliente.contract_tag}</span>
-                          )}
-                        </div>
+                  <div className="p-5 border-b border-border bg-gradient-to-br from-[#0a1628] to-[#0d1f3c] flex items-center justify-between shrink-0">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-bold text-[#60c0ea] uppercase tracking-wider block">Panel del Cliente</span>
+                      <h2 className="text-lg font-extrabold text-white uppercase mt-0.5 leading-tight truncate">
+                        {selectedCliente.nombre} {selectedCliente.apellido}
+                      </h2>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {selectedCliente.estado && (
+                          <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase">{selectedCliente.estado}</span>
+                        )}
+                        {selectedCliente.retaining_client && (
+                          <span className="text-[9px] bg-purple-500/10 border border-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-bold uppercase">Retenido</span>
+                        )}
+                        {selectedCliente.migrate && (
+                          <span className="text-[9px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase">Migrar</span>
+                        )}
+                        {selectedCliente.contract_tag && (
+                          <span className="text-[9px] bg-[#004e74]/40 border border-[#60c0ea]/20 text-[#60c0ea] px-2 py-0.5 rounded-full font-bold uppercase">{selectedCliente.contract_tag}</span>
+                        )}
                       </div>
-                      <button
-                        onClick={() => setSelectedCliente(null)}
-                        className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-secondary ml-2 flex-shrink-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
                     </div>
+                    <button
+                      onClick={() => setSelectedCliente(null)}
+                      className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-secondary ml-2 flex-shrink-0"
+                    >
+                      <X className="h-4.5 w-4.5" />
+                    </button>
                   </div>
 
-                  {/* Info grid */}
-                  <div className="p-4 space-y-2 border-b border-border bg-secondary/10">
-                    <div className="grid grid-cols-1 gap-2 text-xs">
-                      {/* Contact row */}
-                      <div className="flex items-center gap-2 text-foreground/80">
-                        <Phone className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
-                        <span className="font-mono font-semibold">{selectedCliente.telefono}</span>
-                      </div>
-                      {selectedCliente.email && (
+                  {/* Scrollable Container for Panel Body */}
+                  <div className="overflow-y-auto flex-1 p-5 space-y-4">
+                    {/* Info grid */}
+                    <div className="space-y-2.5">
+                      <div className="grid grid-cols-1 gap-2 text-xs">
                         <div className="flex items-center gap-2 text-foreground/80">
-                          <Mail className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
-                          <span className="truncate font-mono text-[10px]">{selectedCliente.email}</span>
+                          <Phone className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
+                          <span className="font-mono font-semibold">{selectedCliente.telefono}</span>
                         </div>
-                      )}
-                      {selectedCliente.cedula && (
-                        <div className="flex items-center gap-2 text-foreground/80">
-                          <User className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
-                          <span className="font-mono">{selectedCliente.cedula}</span>
-                        </div>
-                      )}
-                      {selectedCliente.nro_contrato && (
-                        <div className="flex items-center gap-2 text-foreground/80">
-                          <Hash className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
-                          <span className="font-mono">{selectedCliente.nro_contrato}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Plan + Financial */}
-                    {/* Plan + Financial Details Grid */}
-                    <div className="bg-[#0e1726]/50 border border-[#1e2d4a] rounded-xl p-3 grid grid-cols-2 gap-3 mt-2">
-                      <div className="col-span-2 pb-1.5 border-b border-[#1e2d4a]">
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Plan Contratado</span>
-                        <span className="text-xs font-extrabold text-[#60c0ea] uppercase block truncate mt-0.5">{selectedCliente.plan_contratado}</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Costo del plan</span>
-                        <span className="text-xs font-mono font-black text-foreground block mt-0.5">${selectedCliente.costo_plan.toFixed(2)}</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Prorrateo</span>
-                        <span className="text-xs font-mono font-black text-emerald-400 block mt-0.5">${(selectedCliente.costo_plan / 2).toFixed(2)}</span>
-                      </div>
-                      <div className="col-span-2 pt-1.5 border-t border-[#1e2d4a] flex items-center justify-between">
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Intentos de llamada</span>
-                        <span className="bg-amber-500/10 text-amber-300 font-mono font-black border border-amber-500/20 px-2.5 py-0.5 rounded-lg text-xs">
-                          {selectedCliente.intentos_fallidos || 0}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Location */}
-                    {(selectedCliente.sector || selectedCliente.parroquia || selectedCliente.direccion) && (
-                      <div className="space-y-1">
-                        {(selectedCliente.sector || selectedCliente.parroquia) && (
-                          <div className="flex items-center gap-2 text-foreground/70">
-                            <MapPin className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
-                            <span className="text-xs font-semibold">{[selectedCliente.sector, selectedCliente.parroquia].filter(Boolean).join(' · ')}</span>
+                        {selectedCliente.email && (
+                          <div className="flex items-center gap-2 text-foreground/80">
+                            <Mail className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
+                            <span className="truncate font-mono text-[10px]">{selectedCliente.email}</span>
                           </div>
                         )}
-                        {selectedCliente.direccion && (
-                          <p className="text-[10px] text-muted-foreground pl-5 leading-relaxed line-clamp-2">{selectedCliente.direccion}</p>
+                        {selectedCliente.cedula && (
+                          <div className="flex items-center gap-2 text-foreground/80">
+                            <User className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
+                            <span className="font-mono">{selectedCliente.cedula}</span>
+                          </div>
+                        )}
+                        {selectedCliente.nro_contrato && (
+                          <div className="flex items-center gap-2 text-foreground/80">
+                            <Hash className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
+                            <span className="font-mono">{selectedCliente.nro_contrato}</span>
+                          </div>
                         )}
                       </div>
-                    )}
 
-                    {/* Bank */}
-                    {selectedCliente.banco_nombre && (
-                      <div className="flex items-start gap-2 text-foreground/70">
-                        <Building2 className="h-3.5 w-3.5 text-[#60c0ea] shrink-0 mt-0.5" />
+                      {/* Plan + Financial Details Grid */}
+                      <div className="bg-[#0e1726]/50 border border-[#1e2d4a] rounded-xl p-3.5 grid grid-cols-2 gap-3 mt-2">
+                        <div className="col-span-2 pb-1.5 border-b border-[#1e2d4a]">
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Plan Contratado</span>
+                          <span className="text-xs font-extrabold text-[#60c0ea] uppercase block truncate mt-0.5">{selectedCliente.plan_contratado}</span>
+                        </div>
                         <div>
-                          <span className="text-[10px] font-bold text-muted-foreground block uppercase">{selectedCliente.banco_nombre}</span>
-                          {selectedCliente.banco_nro_cuenta && (
-                            <span className="text-[10px] font-mono text-foreground/60">{selectedCliente.banco_nro_cuenta}</span>
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Costo del plan</span>
+                          <span className="text-xs font-mono font-black text-foreground block mt-0.5">${selectedCliente.costo_plan.toFixed(2)}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Prorrateo</span>
+                          <span className="text-xs font-mono font-black text-emerald-400 block mt-0.5">${(selectedCliente.costo_plan / 2).toFixed(2)}</span>
+                        </div>
+                        <div className="col-span-2 pt-1.5 border-t border-[#1e2d4a] flex items-center justify-between">
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block">Intentos de llamada</span>
+                          <span className="bg-amber-500/10 text-amber-300 font-mono font-black border border-amber-500/20 px-2.5 py-0.5 rounded-lg text-xs">
+                            {selectedCliente.intentos_fallidos || 0}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Location */}
+                      {(selectedCliente.sector || selectedCliente.parroquia || selectedCliente.direccion) && (
+                        <div className="space-y-1">
+                          {(selectedCliente.sector || selectedCliente.parroquia) && (
+                            <div className="flex items-center gap-2 text-foreground/70">
+                              <MapPin className="h-3.5 w-3.5 text-[#60c0ea] shrink-0" />
+                              <span className="text-xs font-semibold">{[selectedCliente.sector, selectedCliente.parroquia].filter(Boolean).join(' · ')}</span>
+                            </div>
+                          )}
+                          {selectedCliente.direccion && (
+                            <p className="text-[10px] text-muted-foreground pl-5 leading-relaxed line-clamp-2">{selectedCliente.direccion}</p>
                           )}
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Created by */}
-                    {selectedCliente.created_by && (
-                      <div className="text-[9px] text-muted-foreground">
-                        Registrado por <span className="font-semibold text-foreground/60">{selectedCliente.created_by}</span>
-                        {selectedCliente.created_at && (
-                          <span> · {new Date(selectedCliente.created_at).toLocaleDateString('es-ES')}</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Call Answer Guard */}
-                  <div className="p-4 space-y-4">
-                    {contestoLlamada === null ? (
-                      <div className="space-y-3 text-center">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">¿El cliente contestó la llamada?</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setContestoLlamada(true)}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-3 rounded-xl transition-all text-xs uppercase shadow-md flex items-center justify-center gap-1.5"
-                          >
-                            <Phone className="h-3.5 w-3.5" /> Sí contestó
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleNoContesto}
-                            disabled={actionLoading}
-                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-3 rounded-xl transition-all text-xs uppercase shadow-md flex items-center justify-center gap-1.5 disabled:opacity-60"
-                          >
-                            <PhoneOff className="h-3.5 w-3.5" />
-                            {actionLoading ? 'Guardando...' : 'No contestó'}
-                          </button>
+                      {/* Bank */}
+                      {selectedCliente.banco_nombre && (
+                        <div className="flex items-start gap-2 text-foreground/70">
+                          <Building2 className="h-3.5 w-3.5 text-[#60c0ea] shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-[10px] font-bold text-muted-foreground block uppercase">{selectedCliente.banco_nombre}</span>
+                            {selectedCliente.banco_nro_cuenta && (
+                              <span className="text-[10px] font-mono text-foreground/60">{selectedCliente.banco_nro_cuenta}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4 animate-fade-in">
+                      )}
+                    </div>
 
-                        {/* Stopwatch Display */}
-                        {timerActive && (
-                          <div className="bg-[#004e74]/15 border border-[#60c0ea]/30 rounded-xl p-3 flex items-center justify-between text-xs animate-pulse">
-                            <div className="flex items-center gap-2">
-                              <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                              </span>
-                              <span className="font-bold text-muted-foreground uppercase tracking-wider text-[9px]">Llamada en curso:</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="font-mono font-black text-sm text-[#60c0ea] flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5" />
-                                {formatTime(secondsElapsed)}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={handleFinalizarLlamada}
-                                className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2.5 rounded-lg text-[9px] uppercase tracking-wider transition-all shadow-md"
-                              >
-                                Finalizar
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Finalized Duration Display */}
-                        {duracionLlamada !== null && !timerActive && (
-                          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center justify-between text-xs animate-fade-in">
-                            <span className="font-bold text-emerald-400 uppercase tracking-wider text-[9px]">Llamada finalizada:</span>
-                            <span className="font-mono font-black text-emerald-400 flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5" />
-                              {formatTime(duracionLlamada)}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Speech Button */}
-                        <button
-                          onClick={() => {
-                            setSecondsElapsed(0);
-                            setTimerActive(true);
-                            setShowSpeechModal(true);
-                          }}
-                          className="w-full bg-gradient-to-r from-[#004e74] to-[#122b51] hover:from-[#60c0ea] hover:to-[#004e74] text-white hover:text-[#002851] font-bold py-3 px-4 rounded-xl shadow-lg border border-[#60c0ea]/30 flex items-center justify-center gap-2 transition-all group"
-                        >
-                          <MessageSquare className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                          Ver Speech de Llamada
-                        </button>
-
-                        {/* WhatsApp Messaging Widget */}
-                        <div className="bg-[#0e1726]/40 border border-border/80 rounded-xl p-3.5 space-y-3">
-                          <div className="flex items-center gap-1.5 border-b border-border/50 pb-2">
-                            <MessageSquare className="h-4 w-4 text-[#60c0ea]" />
-                            <span className="text-[10px] font-bold text-white uppercase tracking-wider">Enviar WhatsApp al Cliente</span>
-                          </div>
-                          
-                          <form onSubmit={handleSendWhatsApp} className="space-y-2.5">
-                            <textarea
-                              rows={2}
-                              value={whatsappMsg}
-                              onChange={(e) => setWhatsappMsg(e.target.value)}
-                              placeholder="Escribe el mensaje de WhatsApp..."
-                              className="w-full bg-[#0b111e]/80 border border-border rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#60c0ea] text-white placeholder-gray-500"
-                              required
-                            />
-                            
+                    {/* Call Answer Guard & Form */}
+                    <div className="border-t border-border/50 pt-4">
+                      {contestoLlamada === null ? (
+                        <div className="space-y-3 text-center">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">¿El cliente contestó la llamada?</p>
+                          <div className="grid grid-cols-2 gap-3">
                             <button
-                              type="submit"
-                              disabled={whatsappLoading || !whatsappMsg.trim()}
-                              className="w-full bg-[#004e74] hover:bg-[#60c0ea] hover:text-[#002851] text-white font-bold py-2 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                              type="button"
+                              onClick={() => setContestoLlamada(true)}
+                              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-3 rounded-xl transition-all text-xs uppercase shadow-md flex items-center justify-center gap-1.5"
                             >
-                              {whatsappLoading ? (
-                                <>
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  <span>Verificando y Enviando...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <MessageSquare className="h-3.5 w-3.5" />
-                                  <span>Verificar y Enviar</span>
-                                </>
-                              )}
+                              <Phone className="h-3.5 w-3.5" /> Sí contestó
                             </button>
-                          </form>
+                            <button
+                              type="button"
+                              onClick={handleNoContesto}
+                              disabled={actionLoading}
+                              className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-3 rounded-xl transition-all text-xs uppercase shadow-md flex items-center justify-center gap-1.5 disabled:opacity-60"
+                            >
+                              <PhoneOff className="h-3.5 w-3.5" />
+                              {actionLoading ? 'Guardando...' : 'No contestó'}
+                            </button>
+                          </div>
                         </div>
-
-                        {/* Form */}
-                        <form onSubmit={handleSaveDetails} className="space-y-3">
-
-                          {/* Informado toggle */}
-                          <button
-                            type="button"
-                            onClick={() => setInformadoVal(!informadoVal)}
-                            className={`w-full flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${
-                              informadoVal
-                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold'
-                                : 'bg-secondary/40 border-border text-gray-400 hover:border-gray-500'
-                            }`}
-                          >
-                            <CheckCircle2 className={`h-5 w-5 mb-1 ${informadoVal ? 'text-emerald-400' : 'text-gray-500'}`} />
-                            <span className="text-[9px] uppercase tracking-wider block">¿Fue Informado de la Migración?</span>
-                            <span className="text-xs font-black uppercase mt-0.5">{informadoVal ? 'SÍ, CONFIRMADO' : 'NO CONTACTADO'}</span>
-                          </button>
-
-                          {/* Last contact date */}
-                          {selectedCliente.primer_contacto && (
-                            <div className="bg-secondary/30 border border-border p-2.5 rounded-xl flex items-center gap-2">
-                              <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
-                              <div>
-                                <span className="text-[9px] font-bold text-[#60c0ea] block uppercase">Último Contacto</span>
-                                <span className="text-xs text-foreground font-semibold">{new Date(selectedCliente.primer_contacto).toLocaleString('es-ES')}</span>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Stopwatch Display */}
+                          {timerActive && (
+                            <div className="bg-[#004e74]/15 border border-[#60c0ea]/30 rounded-xl p-3 flex items-center justify-between text-xs animate-pulse">
+                              <div className="flex items-center gap-2">
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                <span className="font-bold text-muted-foreground uppercase tracking-wider text-[9px]">Llamada en curso:</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono font-black text-sm text-[#60c0ea] flex items-center gap-1">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {formatTime(secondsElapsed)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={handleFinalizarLlamada}
+                                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2.5 rounded-lg text-[9px] uppercase tracking-wider transition-all shadow-md"
+                                >
+                                  Finalizar
+                                </button>
                               </div>
                             </div>
                           )}
 
-                          {/* Notes */}
-                          <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">Notas del Contacto</label>
-                            <textarea
-                              rows={3}
-                              value={resultadoContacto}
-                              onChange={(e) => setResultadoContacto(e.target.value)}
-                              placeholder="Bitácora de la llamada..."
-                              className="w-full bg-secondary border border-border rounded-xl p-2.5 text-xs focus:outline-none focus:border-[#60c0ea] text-foreground placeholder-gray-500"
-                            />
+                          {/* Finalized Duration Display */}
+                          {duracionLlamada !== null && !timerActive && (
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 flex items-center justify-between text-xs">
+                              <span className="font-bold text-emerald-400 uppercase tracking-wider text-[9px]">Llamada finalizada:</span>
+                              <span className="font-mono font-black text-emerald-400 flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {formatTime(duracionLlamada)}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Speech Button */}
+                          <button
+                            onClick={() => {
+                              setSecondsElapsed(0);
+                              setTimerActive(true);
+                              setShowSpeechModal(true);
+                            }}
+                            className="w-full bg-gradient-to-r from-[#004e74] to-[#122b51] hover:from-[#60c0ea] hover:to-[#004e74] text-white hover:text-[#002851] font-bold py-3 px-4 rounded-xl shadow-lg border border-[#60c0ea]/30 flex items-center justify-center gap-2 transition-all group"
+                          >
+                            <MessageSquare className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                            Ver Speech de Llamada
+                          </button>
+
+                          {/* WhatsApp Messaging Widget */}
+                          <div className="bg-[#0e1726]/40 border border-border/80 rounded-xl p-3.5 space-y-3">
+                            <div className="flex items-center gap-1.5 border-b border-border/50 pb-2">
+                              <MessageSquare className="h-4 w-4 text-[#60c0ea]" />
+                              <span className="text-[10px] font-bold text-white uppercase tracking-wider">Enviar WhatsApp al Cliente</span>
+                            </div>
+                            
+                            <form onSubmit={handleSendWhatsApp} className="space-y-2.5">
+                              <textarea
+                                rows={2}
+                                value={whatsappMsg}
+                                onChange={(e) => setWhatsappMsg(e.target.value)}
+                                placeholder="Escribe el mensaje de WhatsApp..."
+                                className="w-full bg-[#0b111e]/80 border border-border rounded-lg p-2.5 text-xs focus:outline-none focus:border-[#60c0ea] text-white placeholder-gray-500"
+                                required
+                              />
+                              
+                              <button
+                                type="submit"
+                                disabled={whatsappLoading || !whatsappMsg.trim()}
+                                className="w-full bg-[#004e74] hover:bg-[#60c0ea] hover:text-[#002851] text-white font-bold py-2 px-3 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                              >
+                                {whatsappLoading ? (
+                                  <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    <span>Verificando y Enviando...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <MessageSquare className="h-3.5 w-3.5" />
+                                    <span>Verificar y Enviar</span>
+                                  </>
+                                )}
+                              </button>
+                            </form>
                           </div>
 
-                          <button
-                            type="submit"
-                            disabled={actionLoading}
-                            className="w-full bg-[#60c0ea] hover:bg-[#4eaad4] text-[#002851] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50"
-                          >
-                            <Save className="h-4 w-4" />
-                            {actionLoading ? 'Guardando...' : 'Guardar Bitácora'}
-                          </button>
-                        </form>
-                      </div>
-                    )}
+                          {/* Form */}
+                          <form onSubmit={handleSaveDetails} className="space-y-3">
+
+                            {/* Informado toggle */}
+                            <button
+                              type="button"
+                              onClick={() => setInformadoVal(!informadoVal)}
+                              className={`w-full flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all ${
+                                informadoVal
+                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold'
+                                  : 'bg-secondary/40 border-border text-gray-400 hover:border-gray-500'
+                              }`}
+                            >
+                              <CheckCircle2 className={`h-5 w-5 mb-1 ${informadoVal ? 'text-emerald-400' : 'text-gray-500'}`} />
+                              <span className="text-[9px] uppercase tracking-wider block">¿Fue Informado de la Migración?</span>
+                              <span className="text-xs font-black uppercase mt-0.5">{informadoVal ? 'SÍ, CONFIRMADO' : 'NO CONTACTADO'}</span>
+                            </button>
+
+                            {/* Last contact date */}
+                            {selectedCliente.primer_contacto && (
+                              <div className="bg-secondary/30 border border-border p-2.5 rounded-xl flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <div>
+                                  <span className="text-[9px] font-bold text-[#60c0ea] block uppercase">Último Contacto</span>
+                                  <span className="text-xs text-foreground font-semibold">{new Date(selectedCliente.primer_contacto).toLocaleString('es-ES')}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Notes */}
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">Notas del Contacto</label>
+                              <textarea
+                                rows={3}
+                                value={resultadoContacto}
+                                onChange={(e) => setResultadoContacto(e.target.value)}
+                                placeholder="Bitácora de la llamada..."
+                                className="w-full bg-secondary border border-border rounded-xl p-2.5 text-xs focus:outline-none focus:border-[#60c0ea] text-foreground placeholder-gray-500"
+                              />
+                            </div>
+
+                            <button
+                              type="submit"
+                              disabled={actionLoading}
+                              className="w-full bg-[#60c0ea] hover:bg-[#4eaad4] text-[#002851] font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50"
+                            >
+                              <Save className="h-4 w-4" />
+                              {actionLoading ? 'Guardando...' : 'Guardar Bitácora'}
+                            </button>
+                          </form>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -922,6 +937,14 @@ export default function ClientesPage() {
               >
                 Aceptar y Continuar
               </button>
+              {clientesFiltrados.length > 0 && (
+                <button
+                  onClick={handleSiguienteContactado}
+                  className="w-full mt-2 bg-gradient-to-r from-[#004e74] to-[#122b51] hover:from-[#60c0ea] hover:to-[#004e74] text-white hover:text-[#002851] font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1.5 border border-[#60c0ea]/20"
+                >
+                  Siguiente contactado
+                </button>
+              )}
             </div>
           </div>
         </div>
