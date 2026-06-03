@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { callLogSchema } from '@/lib/validations';
 import crypto from 'crypto';
-import { decryptSession } from '@/lib/session';
 
-async function checkYetzarethAccess(request: Request): Promise<boolean> {
+async function checkYetzarethAccess(_request: Request): Promise<boolean> {
   return true;
 }
 

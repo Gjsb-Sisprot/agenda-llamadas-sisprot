@@ -50,7 +50,12 @@ const triggerWebhookPortalPago = async (contrato: string) => {
   }
 };
 
-const triggerWebhookNoContesto = async (contrato: string): Promise<any> => {
+interface N8nTicketResponse {
+  id: number;
+  message: string;
+}
+
+const triggerWebhookNoContesto = async (contrato: string): Promise<N8nTicketResponse | null> => {
   if (!contrato) return null;
   try {
     const res = await fetch('/api/webhooks', {

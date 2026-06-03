@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   BarChart3, Users, PhoneCall, PhoneOff, CheckCircle2, XCircle, 
-  RefreshCw, SlidersHorizontal, Sparkles, ArrowRight, Clock, CalendarDays
+  Sparkles, ArrowRight, Clock, CalendarDays
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -40,9 +40,6 @@ export default function DashboardPage() {
   }, []);
 
   // Filtros activos
-  const [filtroPlan, setFiltroPlan] = useState<string>('todos');
-  const [filtroPrecio, setFiltroPrecio] = useState<string>('todos');
-  const [filtroCiclo, setFiltroCiclo] = useState<string>('todos');
   const [filtroContacto, setFiltroContacto] = useState<'todos' | 'contactados' | 'no-contactados'>('todos');
 
 
@@ -92,20 +89,10 @@ export default function DashboardPage() {
     ? clientes.filter(c => c.operador === operatorName)
     : clientes;
 
-  // Lista de planes únicos para filtros
-  const planesDisponibles = Array.from(new Set(myClientes.map(c => c.plan_contratado))).sort();
-
-  // Rangos de precios únicos para filtros
-  const preciosDisponibles = Array.from(new Set(myClientes.map(c => c.costo_plan))).sort((a,b) => a - b);
-
-  // Filtrar clientes
-  const clientesFiltrados = myClientes.filter(c => {
-    if (c.resultado_primer_contacto === 'Agendado para visita informativa') return false;
-    if (filtroPlan !== 'todos' && c.plan_contratado !== filtroPlan) return false;
-    if (filtroPrecio !== 'todos' && c.costo_plan.toString() !== filtroPrecio) return false;
-    if (filtroCiclo !== 'todos' && c.ciclo_actual.toString() !== filtroCiclo) return false;
-    return true;
-  });
+  // Filtrar clientes (excluir los agendados para visita informativa)
+  const clientesFiltrados = myClientes.filter(c =>
+    c.resultado_primer_contacto !== 'Agendado para visita informativa'
+  );
 
   // Métricas generales (sobre todo el universo de clientes)
   const visitasInformativasTotal = myClientes.filter(c => c.resultado_primer_contacto === 'Agendado para visita informativa').length;

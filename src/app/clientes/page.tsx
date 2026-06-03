@@ -22,7 +22,6 @@ export default function ClientesPage() {
     reagendarDate,
     setReagendarDate,
     informadoVal,
-    setInformadoVal,
     contestoLlamada,
     setContestoLlamada,
     operatorName,
