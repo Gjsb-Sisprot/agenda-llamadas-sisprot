@@ -65,7 +65,7 @@ export default function Navigation() {
       }
 
       // 2. Actualizar metadatos en auth.users
-      const updateData: any = {
+      const updateData: { data: { name: string; full_name: string }; password?: string } = {
         data: { name: normalizedName, full_name: normalizedName }
       };
 
@@ -94,11 +94,13 @@ export default function Navigation() {
       localStorage.setItem('user_name', normalizedName);
       setEditSuccess('¡Perfil actualizado con éxito!');
       setTimeout(() => setShowProfileModal(false), 1500);
-    } catch (err: any) {
-      setEditError(err.message || 'Ocurrió un error al actualizar.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Ocurrió un error al actualizar.';
+      setEditError(msg);
     } finally {
       setEditLoading(false);
     }
+
   };
 
 

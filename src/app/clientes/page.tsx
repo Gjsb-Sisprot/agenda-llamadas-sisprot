@@ -909,8 +909,9 @@ export default function ClientesPage() {
                 <div className="space-y-1 pt-1">
                   <span className="text-[10px] text-muted-foreground font-bold uppercase block">Bitácora / Notas</span>
                   <p className="text-foreground/90 font-medium leading-relaxed italic bg-background p-2.5 rounded-lg border border-border/60">
-                    "{resumenData.notas}"
+                    &ldquo;{resumenData.notas}&rdquo;
                   </p>
+
                 </div>
               </div>
 
