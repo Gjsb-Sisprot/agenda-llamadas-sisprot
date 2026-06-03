@@ -670,34 +670,6 @@ export default function ClientesPage() {
               </button>
             </div>
 
-            {/* Stages Bar */}
-            <div className="bg-secondary/40 border-b border-border p-2 flex gap-1 overflow-x-auto">
-              {(() => {
-                const stages = getSpeechStages(selectedCliente);
-                return stages.map((stg, idx) => {
-                  const isActive = activeSpeechStage === idx;
-                  return (
-                    <button
-                      key={stg.id}
-                      onClick={() => {
-                        if (idx === 3 && activeSpeechStage === 2 && stageAnswers[2] === true) {
-                          triggerWebhookPortalPago(selectedCliente.id);
-                        }
-                        setActiveSpeechStage(idx);
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200 ${
-                        isActive
-                          ? 'bg-[#60c0ea] text-[#002851] shadow-md shadow-[#60c0ea]/10 scale-105'
-                          : 'bg-secondary border border-border text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Etapa {stg.id}: {stg.title}
-                    </button>
-                  );
-                });
-              })()}
-            </div>
-
             {/* Content Area */}
             {(() => {
               const stages = getSpeechStages(selectedCliente);
@@ -726,7 +698,10 @@ export default function ClientesPage() {
                   </div>
 
                   {/* Speech Script Box */}
-                  <div className="bg-secondary/20 border border-border p-5 rounded-2xl space-y-4 font-medium text-sm leading-relaxed text-foreground select-text">
+                  <div className="bg-secondary/20 border border-border p-5 rounded-2xl space-y-4 font-medium text-sm leading-relaxed text-foreground select-text animate-fade-in">
+                    <div className="text-sm font-extrabold text-[#60c0ea] uppercase tracking-wider mb-2 border-b border-border/30 pb-2">
+                      Etapa {currentStg.id}: {currentStg.title}
+                    </div>
                     {currentStg.text.map((para, pIdx) => {
                       // Simple markdown parser helper for bold tags
                       const parts = para.split('**');
