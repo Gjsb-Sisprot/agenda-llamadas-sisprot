@@ -124,6 +124,11 @@ export function useClientes() {
     }
   }, []);
 
+  // Ticket GLPI creado modal
+  const [showTicketCreadoModal, setShowTicketCreadoModal] = useState(false);
+  const [ticketCreadoData, setTicketCreadoData] = useState<{ ticketId: string; concepto: string; clienteNombre: string } | null>(null);
+  const [pendingNextCliente, setPendingNextCliente] = useState<typeof clientes[0] | null>(null);
+
   useEffect(() => {
 
     let interval: NodeJS.Timeout | null = null;
@@ -311,10 +316,25 @@ export function useClientes() {
       const updatedList = clientes.map((c) => (c.id === selectedCliente.id ? { ...c, ...updatedData } : c));
       setClientes(updatedList);
 
-      if (nextCliente && nextCliente.id !== selectedCliente.id) {
-        setSelectedCliente(nextCliente);
+      if (isVisitaInformativa) {
+        // Store next client, show ticket modal first
+        setPendingNextCliente(nextCliente);
+        const ticketId = n8nResponse ? String(n8nResponse.id) : 'N/A';
+        const concepto = n8nResponse
+          ? n8nResponse.message
+          : `Visita informativa por no contacto telefónico – Contrato ${selectedCliente.nro_contrato || 'N/A'} - ${selectedCliente.nombre} ${selectedCliente.apellido || ''}`;
+        setTicketCreadoData({
+          ticketId,
+          concepto,
+          clienteNombre: `${selectedCliente.nombre} ${selectedCliente.apellido || ''}`.trim()
+        });
+        setShowTicketCreadoModal(true);
       } else {
-        setSelectedCliente(null);
+        if (nextCliente && nextCliente.id !== selectedCliente.id) {
+          setSelectedCliente(nextCliente);
+        } else {
+          setSelectedCliente(null);
+        }
       }
     } catch (err) {
       console.error('Save failed:', err);
@@ -738,6 +758,20 @@ export function useClientes() {
     bcvTasa,
     setBcvTasa,
     alertaUnMinuto,
+    showTicketCreadoModal,
+    setShowTicketCreadoModal,
+    ticketCreadoData,
+    pendingNextCliente,
+    handleSiguienteTrasTi: () => {
+      setShowTicketCreadoModal(false);
+      setTicketCreadoData(null);
+      if (pendingNextCliente && pendingNextCliente.id !== (selectedCliente?.id ?? '')) {
+        setSelectedCliente(pendingNextCliente);
+      } else {
+        setSelectedCliente(null);
+      }
+      setPendingNextCliente(null);
+    },
 
   };
 }

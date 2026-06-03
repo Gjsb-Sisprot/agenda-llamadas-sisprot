@@ -69,6 +69,10 @@ export default function ClientesPage() {
     bcvTasa,
     setBcvTasa,
     alertaUnMinuto,
+    showTicketCreadoModal,
+    setShowTicketCreadoModal,
+    ticketCreadoData,
+    handleSiguienteTrasTi,
   } = useClientes();
 
   const [bcvInput, setBcvInput] = useState('');
@@ -978,6 +982,66 @@ export default function ClientesPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de Ticket GLPI Creado */}
+      {showTicketCreadoModal && ticketCreadoData && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-amber-500/30 rounded-3xl shadow-2xl shadow-amber-500/10 w-full max-w-md animate-slide-up overflow-hidden">
+
+            {/* Header */}
+            <div className="p-6 text-center bg-gradient-to-br from-[#1a1200] to-[#0d1825] border-b border-amber-500/20 flex flex-col items-center gap-3">
+              <div className="h-16 w-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shadow-inner text-3xl">
+                🎫
+              </div>
+              <div>
+                <p className="text-[10px] text-amber-400 font-black uppercase tracking-widest">Ticket Agendado · GLPI</p>
+                <h3 className="text-lg font-black text-white uppercase tracking-wider mt-0.5">Visita Técnica Informativa</h3>
+                <p className="text-xs text-muted-foreground mt-1">El ticket fue creado y registrado exitosamente en el sistema.</p>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="p-6 space-y-4">
+              <div className="bg-secondary/40 border border-border rounded-2xl p-4 space-y-3 text-xs">
+                <div className="flex justify-between items-center border-b border-border/50 pb-2.5">
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase">Cliente</span>
+                  <span className="font-extrabold text-foreground uppercase text-right">{ticketCreadoData.clienteNombre}</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-border/50 pb-2.5">
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase">N.º Ticket</span>
+                  <span className="font-mono font-black text-amber-400 text-sm">#{ticketCreadoData.ticketId}</span>
+                </div>
+                <div className="space-y-1.5 pt-0.5">
+                  <span className="text-[10px] text-muted-foreground font-bold uppercase block">Concepto del Ticket</span>
+                  <p className="text-foreground/90 font-medium leading-relaxed bg-background p-2.5 rounded-lg border border-border/60 italic text-[11px]">
+                    {ticketCreadoData.concepto}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+                El cliente será contactado próximamente para coordinar la visita.<br />
+                <span className="text-amber-400 font-semibold">No tiene fecha fija asignada aún.</span>
+              </p>
+
+              {/* Actions */}
+              <button
+                onClick={handleSiguienteTrasTi}
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-black py-3.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
+              >
+                <span>➡️</span> Siguiente usuario
+              </button>
+              <button
+                onClick={() => setShowTicketCreadoModal(false)}
+                className="w-full bg-secondary/40 hover:bg-secondary/70 border border-border text-muted-foreground hover:text-foreground font-bold py-2.5 px-4 rounded-xl text-xs uppercase tracking-wider transition-all"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
 
   );
