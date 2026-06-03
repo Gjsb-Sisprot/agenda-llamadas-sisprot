@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import crypto from 'crypto';
 
 interface ClienteLlamadaRow {
   id: string;
@@ -21,8 +22,19 @@ interface ClienteLlamadaRow {
 
 export async function GET(request: Request) {
   try {
+    // Validar Token de Power BI directamente en el endpoint
+    const authHeader = request.headers.get('Authorization');
+    const expectedToken = process.env.POWERBI_TOKEN;
+    if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
+      return NextResponse.json({
+        error: 'Unauthorized',
+        message: 'Acceso no autorizado: Token de Power BI inválido o no configurado.'
+      }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const table = searchParams.get('table');
+
 
     const PAGE_SIZE = 1000;
     let allClientes: ClienteLlamadaRow[] = [];
@@ -138,24 +150,47 @@ export async function GET(request: Request) {
         };
       });
 
-    // Route response based on query parameter
+    let responseData: any;
     if (table === 'operadores') {
-      return NextResponse.json(operadoresTable);
+      responseData = operadoresTable;
     } else if (table === 'clientes') {
-      return NextResponse.json(clientesTable);
+      responseData = clientesTable;
     } else if (table === 'metas') {
-      return NextResponse.json(metasTable);
+      responseData = metasTable;
     } else if (table === 'llamadas') {
-      return NextResponse.json(llamadasTable);
+      responseData = llamadasTable;
+    } else {
+      responseData = {
+        operadores: operadoresTable,
+        clientes: clientesTable,
+        metas_diarias: metasTable,
+        registro_llamadas: llamadasTable
+      };
     }
 
-    // Default returns all tables in a single payload
-    return NextResponse.json({
-      operadores: operadoresTable,
-      clientes: clientesTable,
-      metas_diarias: metasTable,
-      registro_llamadas: llamadasTable
+    const responseBodyString = JSON.stringify(responseData);
+    const etag = crypto.createHash('md5').update(responseBodyString).digest('hex');
+
+    const ifNoneMatch = request.headers.get('if-none-match');
+    if (ifNoneMatch === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          'ETag': etag,
+          'Cache-Control': 'no-cache'
+        }
+      });
+    }
+
+    return new NextResponse(responseBodyString, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'ETag': etag,
+        'Cache-Control': 'no-cache'
+      }
     });
+
 
   } catch (error: unknown) {
     console.error('Error generating relational Power BI API:', error);

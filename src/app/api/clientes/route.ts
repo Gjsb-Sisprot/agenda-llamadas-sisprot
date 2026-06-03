@@ -1,6 +1,26 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { callLogSchema } from '@/lib/validations';
+import crypto from 'crypto';
+import { decryptSession } from '@/lib/session';
+
+async function checkYetzarethAccess(request: Request): Promise<boolean> {
+  const cookieHeader = request.headers.get('cookie') || '';
+  const sessionToken = cookieHeader
+    .split(';')
+    .find(c => c.trim().startsWith('session_token='))
+    ?.split('=')[1];
+
+  if (!sessionToken) return false;
+
+  try {
+    const session = await decryptSession(sessionToken);
+    return session?.email === 'ybravo@sisprotgf.com';
+  } catch {
+    return false;
+  }
+}
+
 
 interface CallLog {
   id: string;
@@ -62,10 +82,15 @@ async function saveCallLog(log: CallLog): Promise<boolean> {
   return savedInSupabase;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Supabase caps results at 1000 rows per request.
-    // We paginate in chunks of 1000 until we get everything.
+    if (!(await checkYetzarethAccess(request))) {
+      return NextResponse.json({
+        error: 'Forbidden',
+        message: 'Acceso denegado: solo Yetzareth tiene permisos para acceder a esta API.'
+      }, { status: 403 });
+    }
+
     const PAGE_SIZE = 1000;
     let allClientes: Record<string, unknown>[] = [];
     let from = 0;
@@ -82,20 +107,41 @@ export async function GET() {
       if (data && data.length > 0) {
         allClientes = allClientes.concat(data);
         from += PAGE_SIZE;
-        hasMore = data.length === PAGE_SIZE; // si devolvió menos de PAGE_SIZE, ya no hay más
+        hasMore = data.length === PAGE_SIZE; 
       } else {
         hasMore = false;
       }
     }
 
-    // Sort by ID
     allClientes.sort((a, b) => {
       const idA = String(a.id || '');
       const idB = String(b.id || '');
       return idA.localeCompare(idB);
     });
 
-    return NextResponse.json(allClientes);
+    const responseBodyString = JSON.stringify(allClientes);
+    const etag = crypto.createHash('md5').update(responseBodyString).digest('hex');
+
+    const ifNoneMatch = request.headers.get('if-none-match');
+    if (ifNoneMatch === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          'ETag': etag,
+          'Cache-Control': 'no-cache'
+        }
+      });
+    }
+
+    return new NextResponse(responseBodyString, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'ETag': etag,
+        'Cache-Control': 'no-cache'
+      }
+    });
+
   } catch (error: unknown) {
     console.error('Error fetching clients in API Route:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -105,7 +151,15 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!(await checkYetzarethAccess(request))) {
+      return NextResponse.json({
+        error: 'Forbidden',
+        message: 'Acceso denegado: solo Yetzareth tiene permisos para acceder a esta API.'
+      }, { status: 403 });
+    }
+
     const body = await request.json();
+
     
     // Strict validation using Zod
     const result = callLogSchema.safeParse(body);
