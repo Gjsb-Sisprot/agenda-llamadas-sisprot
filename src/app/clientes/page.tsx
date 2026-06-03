@@ -1,10 +1,11 @@
 'use client';
 
 import { useClientes } from '@/hooks/useClientes';
+import { useState } from 'react';
 import {
   Users, Search, Check, X, Phone, MessageSquare, AlertCircle, Save, CheckCircle2,
   ChevronRight, CalendarDays, Loader2, Mail, MapPin, PhoneOff, Building2, User, Hash, Clock,
-  ChevronsLeft, ChevronsRight
+  ChevronsLeft, ChevronsRight, TrendingUp
 } from 'lucide-react';
 
 
@@ -65,7 +66,13 @@ export default function ClientesPage() {
     showResumenModal,
     setShowResumenModal,
     resumenData,
+    bcvTasa,
+    setBcvTasa,
+    alertaUnMinuto,
   } = useClientes();
+
+  const [bcvInput, setBcvInput] = useState('');
+  const isElisaul = operatorName === 'Elisaul Reyes';
 
 
   const totalItems = clientesFiltrados.length;
@@ -98,6 +105,40 @@ export default function ClientesPage() {
             </div>
           </div>
 
+        {/* BCV Tasa Widget - visible always, editable solo por Elisaul */}
+        <div className="flex items-center gap-2 bg-card border border-border rounded-2xl px-4 py-2.5 shadow-md">
+          <TrendingUp className="h-4 w-4 text-amber-400 shrink-0" />
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Tasa BCV Día:</span>
+          {isElisaul ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const val = parseFloat(bcvInput.replace(',', '.'));
+                if (!isNaN(val) && val > 0) {
+                  setBcvTasa(val);
+                  setBcvInput('');
+                }
+              }}
+              className="flex items-center gap-1.5"
+            >
+              <input
+                type="text"
+                value={bcvInput}
+                onChange={(e) => setBcvInput(e.target.value)}
+                placeholder={bcvTasa > 0 ? `Bs ${bcvTasa.toLocaleString('es-VE', {minimumFractionDigits:2})}` : 'Bs 0.00'}
+                className="w-28 bg-secondary border border-border text-foreground text-xs rounded-lg px-2 py-1 focus:outline-none focus:border-amber-400 font-mono"
+              />
+              <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-black font-bold text-[9px] uppercase tracking-wider px-2 py-1 rounded-lg transition-all">
+                Guardar
+              </button>
+            </form>
+          ) : (
+            <span className="font-mono font-black text-amber-400 text-sm">
+              {bcvTasa > 0 ? `Bs ${bcvTasa.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+            </span>
+          )}
+        </div>
+
           {/* Stats chips */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-bold">
@@ -120,6 +161,19 @@ export default function ClientesPage() {
             )}
           </div>
         </div>
+
+        {/* Alerta de 1 Minuto Restante */}
+        {alertaUnMinuto && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] animate-slide-up">
+            <div className="bg-red-600 text-white border border-red-400 shadow-2xl shadow-red-500/30 rounded-2xl px-6 py-4 flex items-center gap-3 text-sm font-bold uppercase tracking-wider">
+              <span className="text-xl animate-bounce">⚠️</span>
+              <div>
+                <span className="block text-base font-black">¡1 minuto restante!</span>
+                <span className="text-[11px] font-semibold text-red-100 normal-case tracking-normal">La llamada alcanzará el límite de 5 minutos. Vaya cerrando la llamada.</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Meta Diaria del Operador */}
         {operatorName && operatorName !== "Elisaul Reyes" && (
@@ -893,7 +947,7 @@ export default function ClientesPage() {
                 <div className="flex justify-between items-center border-b border-border/50 pb-2">
                   <span className="text-[10px] text-muted-foreground font-bold uppercase">Duración</span>
                   <span className="font-mono font-bold text-foreground">
-                    {resumenData.duracion ? formatTime(resumenData.duracion) : '00:00'}
+                    {resumenData.duracion != null ? formatTime(resumenData.duracion) : (duracionLlamada != null ? formatTime(duracionLlamada) : '—')}
                   </span>
                 </div>
                 <div className="space-y-1 pt-1">

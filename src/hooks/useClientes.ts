@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface ClienteLlamada {
   id: string;
@@ -111,13 +111,32 @@ export function useClientes() {
   // Resumen modal
   const [showResumenModal, setShowResumenModal] = useState(false);
   const [resumenData, setResumenData] = useState<{ clienteNombre: string; duracion: number | null; notas: string } | null>(null);
+  // BCV Tasa del Día (global config, only editable by Elisaul)
+  const [bcvTasa, setBcvTasaState] = useState<number>(0);
 
+  // Alerta de 1 minuto restante en la llamada
+  const [alertaUnMinuto, setAlertaUnMinuto] = useState(false);
+
+  const setBcvTasa = useCallback((tasa: number) => {
+    setBcvTasaState(tasa);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bcv_tasa_dia', tasa.toString());
+    }
+  }, []);
 
   useEffect(() => {
+
     let interval: NodeJS.Timeout | null = null;
     if (timerActive) {
       interval = setInterval(() => {
-        setSecondsElapsed((prev) => prev + 1);
+        setSecondsElapsed((prev) => {
+          const next = prev + 1;
+          if (next === 240) {
+            setAlertaUnMinuto(true);
+            setTimeout(() => setAlertaUnMinuto(false), 8000);
+          }
+          return next;
+        });
       }, 1000);
     }
     return () => {
@@ -128,6 +147,11 @@ export function useClientes() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setOperatorName(localStorage.getItem('user_name'));
+      const savedTasa = localStorage.getItem('bcv_tasa_dia');
+      if (savedTasa) {
+        const parsed = parseFloat(savedTasa);
+        if (!isNaN(parsed) && parsed > 0) setBcvTasaState(parsed);
+      }
     }
   }, []);
 
@@ -373,9 +397,16 @@ export function useClientes() {
     const planName = cliente.plan_contratado;
     const planCost = `$${cliente.costo_plan.toFixed(2)}`;
     const planCostHalf = `$${(cliente.costo_plan / 2).toFixed(2)}`;
+    const planCostHalfNum = cliente.costo_plan / 2;
+    const costBsHalf = bcvTasa > 0
+      ? `Bs ${(planCostHalfNum * bcvTasa).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : (cliente.deuda_bs ? `Bs ${cliente.deuda_bs.toFixed(2)}` : 'Bs —');
     const costBs = cliente.deuda_bs ? `Bs ${cliente.deuda_bs.toFixed(2)}` : 'Bs —';
     const clientPhone = cliente.telefono;
     const clientEmail = cliente.email || 'su correo registrado';
+    const tasaTexto = bcvTasa > 0
+      ? `Bs ${bcvTasa.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} por dólar`
+      : 'la tasa BCV del día';
 
     return [
       {
@@ -415,7 +446,7 @@ export function useClientes() {
           `— Para este mes de junio, usted recibirá una notificación de cobro desde el **01 de junio**, con oportunidad de pago hasta el **15 de junio**.`,
           `— Esta factura no será una mensualidad completa ni un pago doble. Será un **prorrateo correspondiente a los días restantes del mes de junio**, desde el **15 de junio hasta el 30 de junio**.`,
           `— Es decir, en junio usted pagará aproximadamente la mitad de su plan, correspondiente únicamente a ese período de transición.`,
-          `— **Ejemplo:** Su plan tiene un costo de **${planCost}**. Para junio pagará **${planCostHalf}**, calculado a la tasa BCV del 01 de junio, dando un total aproximado de **${costBs}**.`,
+          `— **Ejemplo:** Su plan tiene un costo de **${planCost}**. Para junio pagará **${planCostHalf}**, calculado a **${tasaTexto}**, cuyo equivalente en bolívares es aproximadamente **${costBsHalf}**.`,
           `— A partir del **01 de julio**, su facturación pasará al nuevo **ciclo único 01**. Su factura será generada el día 01, con plazo de pago hasta el día 02, y el día 03 se generará el corte automático en caso de falta de pago.`,
           `— **¿Me confirma si quedó claro que en junio no tendrá doble facturación, sino un prorrateo, y que desde julio su ciclo será el día 01 de cada mes?**`
         ]
@@ -704,6 +735,9 @@ export function useClientes() {
     setShowResumenModal,
     resumenData,
     setResumenData,
+    bcvTasa,
+    setBcvTasa,
+    alertaUnMinuto,
 
   };
 }
