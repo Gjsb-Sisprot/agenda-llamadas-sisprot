@@ -61,7 +61,7 @@ export default function LoginPage() {
             Sisprot Global Fiber
           </h2>
           <p className="mt-2 text-center text-sm text-[#60c0ea]">
-            Portal de Acceso - Encuentro de Condominios
+            Portal de Acceso - Agenda de Llamadas y Migración
           </p>
         </div>
 
