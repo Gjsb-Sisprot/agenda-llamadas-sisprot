@@ -42,7 +42,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Error al enviar petición al servidor de automatización' }, { status: 502 });
     }
 
-    return NextResponse.json({ success: true });
+    try {
+      const responseData = await response.json();
+      return NextResponse.json({ success: true, data: responseData });
+    } catch {
+      return NextResponse.json({ success: true });
+    }
   } catch (error: unknown) {
     console.error('[SERVER_WEBHOOK_EXCEPTION]', error);
     const message = error instanceof Error ? error.message : 'Unknown error';

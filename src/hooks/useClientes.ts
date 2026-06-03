@@ -50,17 +50,24 @@ const triggerWebhookPortalPago = async (contrato: string) => {
   }
 };
 
-const triggerWebhookNoContesto = async (contrato: string) => {
-  if (!contrato) return;
+const triggerWebhookNoContesto = async (contrato: string): Promise<any> => {
+  if (!contrato) return null;
   try {
-    await fetch('/api/webhooks', {
+    const res = await fetch('/api/webhooks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'no_contesto', contrato }),
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.data && data.data[0]) {
+        return data.data[0];
+      }
+    }
   } catch (err) {
     console.error('Failed to trigger no contesto webhook:', err);
   }
+  return null;
 };
 
 export function useClientes() {
@@ -242,15 +249,16 @@ export function useClientes() {
     const newIntentos = (selectedCliente.intentos_fallidos || 0) + 1;
     const isVisitaInformativa = newIntentos >= 3;
 
+    let n8nResponse = null;
     if (isVisitaInformativa) {
-      await triggerWebhookNoContesto(selectedCliente.id);
+      n8nResponse = await triggerWebhookNoContesto(selectedCliente.id);
     }
 
     const updatedData = {
       resultado_primer_contacto: isVisitaInformativa ? 'Agendado para visita informativa' : 'Llamada no contestada',
       reagendar_fecha: null,
-      requiere_ticket_glpi: false,
-      ticket_glpi_detalles: null,
+      requiere_ticket_glpi: isVisitaInformativa,
+      ticket_glpi_detalles: n8nResponse ? `TICKET_ID: ${n8nResponse.id} | MESSAGE: ${n8nResponse.message}` : null,
       informado: false,
       primer_contacto: new Date().toISOString(),
       intentos_fallidos: newIntentos,

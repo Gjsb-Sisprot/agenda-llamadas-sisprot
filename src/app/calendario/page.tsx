@@ -14,6 +14,8 @@ export default function CalendarioPage() {
   const [showSpeechModal, setShowSpeechModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [showTicketsModal, setShowTicketsModal] = useState(false);
+  const [ticketPage, setTicketPage] = useState(1);
 
   // Form states for active details edit
   const [resultadoContacto, setResultadoContacto] = useState('');
@@ -177,6 +179,30 @@ export default function CalendarioPage() {
       date: new Date(currentYear, currentMonth + 1, d)
     });
   }
+  const ticketsAgendados = clientes.filter(c => c.requiere_ticket_glpi);
+
+  const parseTicketDetails = (c: ClienteLlamada) => {
+    const details = c.ticket_glpi_detalles || '';
+    if (details.includes('TICKET_ID:')) {
+      const idPart = details.split('TICKET_ID:')[1]?.split('|')[0]?.trim();
+      const msgPart = details.split('MESSAGE:')[1]?.trim();
+      return {
+        id: idPart || `GLPI-${c.id}`,
+        message: msgPart || `Visita informativa por no contacto telefónico – Cambio a Ciclo 01 / Tasa BCV congelada - Contrato ${c.nro_contrato || 'N/A'} - ${c.nombre} ${c.apellido || ''} - Sector: ${c.sector || 'No especificado'}`
+      };
+    }
+    return {
+      id: details.trim() || `GLPI-${c.id}`,
+      message: `Visita informativa por no contacto telefónico – Cambio a Ciclo 01 / Tasa BCV congelada - Contrato ${c.nro_contrato || 'N/A'} - ${c.nombre} ${c.apellido || ''} - Sector: ${c.sector || 'No especificado'}`
+    };
+  };
+
+  const ticketsPerPage = 10;
+  const totalTicketPages = Math.ceil(ticketsAgendados.length / ticketsPerPage);
+  const paginatedTickets = ticketsAgendados.slice(
+    (ticketPage - 1) * ticketsPerPage,
+    ticketPage * ticketsPerPage
+  );
 
   return (
     <main className="min-h-screen bg-background text-foreground p-4 md:p-8 animate-fade-in">
@@ -273,20 +299,16 @@ export default function CalendarioPage() {
                           : 'bg-secondary/40 border-border text-gray-500 hover:text-foreground'
                       }`}
                     >
-                      🏢 Visitas ({countVisita})
+                      🏢 Visitas Agencia ({countVisita})
                     </button>
 
-                    {/* GLPI Tickets */}
+                    {/* Visitas Tecnica Informativa */}
                     <button
                       type="button"
-                      onClick={() => setFilterTypes(prev => ({ ...prev, glpi: !prev.glpi }))}
-                      className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase border transition-all flex items-center gap-1.5 cursor-pointer select-none ${
-                        filterTypes.glpi 
-                          ? 'bg-amber-500/15 text-amber-400 border-amber-500/30 shadow-md shadow-amber-500/5' 
-                          : 'bg-secondary/40 border-border text-gray-500 hover:text-foreground'
-                      }`}
+                      onClick={() => setShowTicketsModal(true)}
+                      className="px-3 py-2 rounded-xl text-[10px] font-black uppercase border transition-all flex items-center gap-1.5 cursor-pointer select-none bg-amber-500/15 text-amber-400 border-amber-500/30 hover:bg-amber-500/25 shadow-md shadow-amber-500/5"
                     >
-                      🚨 Tickets GLPI ({countGlpi})
+                      🚨 Visitas Tecnica Informativa ({countGlpi})
                     </button>
                   </div>
                 </div>
@@ -698,6 +720,97 @@ export default function CalendarioPage() {
           </div>
         );
       })()}
+
+      {/* Visitas Tecnica Informativa Modal */}
+      {showTicketsModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowTicketsModal(false)}
+        >
+          <div
+            className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-4xl animate-slide-up flex flex-col max-h-[85vh] overflow-hidden text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-border bg-gradient-to-br from-[#0a1628] to-[#0d1f3c] flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                  🚨
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white uppercase tracking-wider">Visitas Técnicas Informativas (Tickets Agendados)</h3>
+                  <p className="text-xs text-muted-foreground">Listado general de tickets agendados para visitas coordinadas sin fecha fija.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTicketsModal(false)}
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-secondary"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Table Area */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {ticketsAgendados.length === 0 ? (
+                <div className="p-12 text-center text-gray-500 italic text-sm">
+                  No hay tickets agendados en este sistema.
+                </div>
+              ) : (
+                <div className="border border-border rounded-2xl overflow-hidden shadow-md">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-border text-muted-foreground text-xs font-bold uppercase bg-secondary/15">
+                        <th className="py-3 px-4">Ticket ID</th>
+                        <th className="py-3 px-4">Mensaje / Concepto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedTickets.map((c) => {
+                        const ticket = parseTicketDetails(c);
+                        return (
+                          <tr key={c.id} className="border-b border-border/50 hover:bg-secondary/10 transition-colors text-xs last:border-0">
+                            <td className="py-3 px-4 font-mono font-black text-amber-400 font-bold">#{ticket.id}</td>
+                            <td className="py-3 px-4 text-foreground/90 leading-relaxed">{ticket.message}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination / Footer */}
+            {totalTicketPages > 1 && (
+              <div className="p-4 bg-secondary/30 border-t border-border flex items-center justify-between text-xs shrink-0">
+                <span className="text-muted-foreground font-semibold">
+                  Mostrando {(ticketPage - 1) * ticketsPerPage + 1}-{Math.min(ticketsAgendados.length, ticketPage * ticketsPerPage)} de {ticketsAgendados.length} tickets
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setTicketPage(prev => Math.max(1, prev - 1))}
+                    disabled={ticketPage === 1}
+                    className="px-3 py-1.5 rounded-lg border border-border bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-foreground font-bold transition-all"
+                  >
+                    Anterior
+                  </button>
+                  <span className="font-bold text-foreground">
+                    Página {ticketPage} de {totalTicketPages}
+                  </span>
+                  <button
+                    onClick={() => setTicketPage(prev => Math.min(totalTicketPages, prev + 1))}
+                    disabled={ticketPage === totalTicketPages}
+                    className="px-3 py-1.5 rounded-lg border border-border bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-foreground font-bold transition-all"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </main>
   );
