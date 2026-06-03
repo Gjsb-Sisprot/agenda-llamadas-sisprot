@@ -104,3 +104,21 @@ ALTER TABLE clientes_llamadas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Permitir acceso completo a clientes_llamadas"
     ON clientes_llamadas FOR ALL
     USING (true) WITH CHECK (true);
+
+-- =============================================================================
+-- 2. TABLA: tasa_bcv_mensual
+--    Almacena el histórico y la tasa actual del BCV configurada por mes.
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS tasa_bcv_mensual (
+    mes         TEXT            PRIMARY KEY,            -- Formato 'YYYY-MM'
+    tasa        NUMERIC(10,2)   NOT NULL,               -- Valor de la tasa de cambio
+    updated_at  TIMESTAMPTZ     DEFAULT now()           -- Fecha de última actualización
+);
+
+-- RLS para la tabla tasa_bcv_mensual
+ALTER TABLE tasa_bcv_mensual ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Permitir acceso completo a tasa_bcv_mensual"
+    ON tasa_bcv_mensual FOR ALL
+    USING (true) WITH CHECK (true);
+

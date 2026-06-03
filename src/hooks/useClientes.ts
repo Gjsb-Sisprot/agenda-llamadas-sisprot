@@ -117,10 +117,23 @@ export function useClientes() {
   // Alerta de 1 minuto restante en la llamada
   const [alertaUnMinuto, setAlertaUnMinuto] = useState(false);
 
-  const setBcvTasa = useCallback((tasa: number) => {
+  const setBcvTasa = useCallback(async (tasa: number) => {
     setBcvTasaState(tasa);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('bcv_tasa_dia', tasa.toString());
+    try {
+      const res = await fetch('/api/tasa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tasa }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || data.error || 'Failed to save rate');
+      }
+      showNotification('success', 'Tasa BCV guardada en Supabase con éxito.');
+    } catch (err: unknown) {
+      console.error('Failed to save BCV rate:', err);
+      const msg = err instanceof Error ? err.message : 'Error desconocido';
+      showNotification('error', `Error al guardar la tasa: ${msg}`);
     }
   }, []);
 
@@ -152,12 +165,22 @@ export function useClientes() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setOperatorName(localStorage.getItem('user_name'));
-      const savedTasa = localStorage.getItem('bcv_tasa_dia');
-      if (savedTasa) {
-        const parsed = parseFloat(savedTasa);
-        if (!isNaN(parsed) && parsed > 0) setBcvTasaState(parsed);
+    }
+
+    async function loadTasa() {
+      try {
+        const res = await fetch('/api/tasa');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data.tasa === 'number') {
+            setBcvTasaState(data.tasa);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load BCV rate:', err);
       }
     }
+    loadTasa();
   }, []);
 
   // Reset pagination on filter changes
